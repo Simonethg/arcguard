@@ -1,21 +1,147 @@
 name: ArcGuard
 description: >
-  Scaffold for the ArcGuard composite action. Scanning, SARIF upload, and
-  pull-request comments are not implemented. This step fails closed so a
-  workflow cannot go green without a real scan.
+  Install ArcGuard, run arcaudit, upload SARIF to Code Scanning, and comment
+  on the pull request. Arc testnet only. Does not replace an audit.
+
+branding:
+  icon: shield
+  color: blue
 
 inputs:
   path:
-    description: Path that a future release will scan.
+    description: File or directory to scan, relative to the workspace.
     required: false
     default: "."
+  fail-on:
+    description: Lowest severity that fails the check (none, info, low, medium, high).
+    required: false
+    default: high
+  sarif-file:
+    description: SARIF path relative to the workspace.
+    required: false
+    default: arcguard.sarif
+  sarif-category:
+    description: Code Scanning category. Use a distinct value when several jobs upload.
+    required: false
+    default: arcguard
+  comment:
+    description: Post a Spanish and English summary on the pull request.
+    required: false
+    default: "true"
+  upload-sarif:
+    description: Upload the SARIF file to GitHub Code Scanning.
+    required: false
+    default: "true"
+  ignore:
+    description: Newline-separated workspace-relative paths to skip.
+    required: false
+    default: ""
+  python-version:
+    description: Python version used to install ArcGuard.
+    required: false
+    default: "3.12"
+  version:
+    description: >
+      arcguard version to install from PyPI. Leave empty to install the
+      checkout that ships with this action.
+    required: false
+    default: ""
+  token:
+    description: Workflow token used only to comment on the pull request.
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  sarif-file:
+    description: Workspace-relative SARIF path.
+    value: ${{ steps.scan.outputs.sarif-file }}
+  markdown-file:
+    description: Markdown summary path.
+    value: ${{ steps.scan.outputs.markdown-file }}
+  finding-count:
+    description: Number of findings.
+    value: ${{ steps.scan.outputs.finding-count }}
+  engine:
+    description: arcaudit when the CLI wrote SARIF, otherwise text-rules.
+    value: ${{ steps.scan.outputs.engine }}
+  should-fail:
+    description: True when findings meet fail-on.
+    value: ${{ steps.scan.outputs.should-fail }}
 
 runs:
   using: composite
   steps:
-    - name: Refuse an empty success
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install arcguard
       shell: bash
+      env:
+        ARCGUARD_VERSION: ${{ inputs.version }}
+        ARCGUARD_REPO: ${{ github.action_path }}/..
       run: |
-        echo "ArcGuard action scaffold: scan is not implemented."
-        echo "No SARIF was uploaded and no Arc testnet check ran."
+        set -euo pipefail
+        python -m pip install --upgrade pip
+        if [ -n "${ARCGUARD_VERSION}" ]; then
+          case "${ARCGUARD_VERSION}" in
+            *[!0-9A-Za-z._+-]*)
+              echo "arcguard version contains unsupported characters" >&2
+              exit 2
+              ;;
+          esac
+          python -m pip install "arcguard==${ARCGUARD_VERSION}"
+        else
+          repo="$(CDPATH= cd -- "${ARCGUARD_REPO}" && pwd)"
+          python -m pip install "${repo}"
+        fi
+        command -v arcaudit
+        arcaudit --version
+
+    - name: Run arcaudit
+      id: scan
+      shell: bash
+      env:
+        ARCGUARD_HOME: ${{ github.action_path }}
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_SARIF_FILE: ${{ inputs.sarif-file }}
+        INPUT_IGNORE: ${{ inputs.ignore }}
+        ARCGUARD_REPORT_ONLY: "1"
+      run: |
+        set -euo pipefail
+        python "${ARCGUARD_HOME}/run_scan.py"
+
+    - name: Upload SARIF
+      if: always() && inputs.upload-sarif == 'true'
+      continue-on-error: true
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ steps.scan.outputs.sarif-file }}
+        category: ${{ inputs.sarif-category }}
+
+    - name: Comment on the pull request
+      if: always() && inputs.comment == 'true' && github.event_name == 'pull_request'
+      continue-on-error: true
+      shell: bash
+      env:
+        ARCGUARD_HOME: ${{ github.action_path }}
+        INPUT_PR_NUMBER: ${{ github.event.pull_request.number }}
+        ARCGUARD_API_TOKEN: ${{ inputs.token }}
+        ARCGUARD_MARKDOWN: ${{ steps.scan.outputs.markdown-file }}
+      run: |
+        set -euo pipefail
+        python "${ARCGUARD_HOME}/post_comment.py"
+
+    - name: Fail when findings meet the threshold
+      if: steps.scan.outputs.should-fail == 'true'
+      shell: bash
+      env:
+        FINDING_COUNT: ${{ steps.scan.outputs.finding-count }}
+        ENGINE: ${{ steps.scan.outputs.engine }}
+      run: |
+        set -euo pipefail
+        echo "ArcGuard reported ${FINDING_COUNT} finding(s) using ${ENGINE}."
+        echo "The SARIF file and the pull request comment list each rule."
         exit 1

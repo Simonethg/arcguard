@@ -1,0 +1,52 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package and test tools
+        run: python -m pip install -e ".[dev]"
+
+      - name: Pytest
+        run: pytest
+
+      - name: Fixed fixture stays clean
+        run: |
+          set -euo pipefail
+          python action/run_scan.py \
+            --path action/fixtures/fixed \
+            --engine text \
+            --fail-on high \
+            --sarif arcguard-release-fixed.sarif \
+            --markdown arcguard-release-fixed.md
+
+      - name: Vulnerable fixture must fail the scan
+        run: |
+          set -euo pipefail
+          set +e
+          python action/run_scan.py \
+            --path action/fixtures/vulnerable \
+            --engine text \
+            --fail-on high \
+            --sarif arcguard-release-vulnerable.sarif \
+            --markdown arcguard-release-vulnerable.md
+          status="$?"
+          set -e
+          if [ "${status}" -eq 0 ]; then
+            echo "vulnerable fixture produced no failing findings" >&2
+            exit 1
+          fi
+          test -s arcguard-release-vulnerable.sarif

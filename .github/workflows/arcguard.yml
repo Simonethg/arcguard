@@ -1,0 +1,30 @@
+name: arcguard
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+  pull-requests: write
+
+concurrency:
+  group: arcguard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan the repository
+        uses: ./
+        with:
+          path: .
+          fail-on: high
+          # The vulnerable fixture is a deliberate demo. demo-vulnerable.yml scans it.
+          ignore: action/fixtures/vulnerable
