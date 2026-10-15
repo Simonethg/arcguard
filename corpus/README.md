@@ -68,6 +68,16 @@ bash scripts/run-testnet-evidence.sh
 
 El script corta si el chain id no es `5042002`, no imprime la clave y, si la variable no existe, sale 0 sin enviar nada. El recibo queda en `evidence/last-run.txt`, directorio ignorado por git. Copiá el hash a [EVIDENCE.md](EVIDENCE.md).
 
+## Hook de secretos
+
+El hook vive en `.githooks/` (raíz del repo). En un clon nuevo:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Bloquea `.env` (excepto `.env.example`), claves y strings con forma de secreto. Antes de cada push también se puede correr `bash .githooks/scan-secrets.sh --unpushed`.
+
 ## Si este entorno no tiene Arc Foundry
 
 Sin `arc-forge` / `arc-anvil` la suite no se puede ejecutar: el Foundry upstream no implementa las reglas de Arc. Instalá los binarios desde las releases de https://github.com/circlefin/arc-foundry y volvé a correr los scripts de arriba.
