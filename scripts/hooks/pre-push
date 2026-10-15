@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Re-check the branch diff and, when installed, run gitleaks / trufflehog.
 # Enable with: git config core.hooksPath scripts/hooks
+#
+# The range is origin/main..HEAD, the same range as .github/workflows/gitleaks.yml.
+# History that is already on main is outside this push.
 
 set -u
 
@@ -17,11 +20,20 @@ elif git rev-parse --verify main >/dev/null 2>&1; then
 fi
 
 if command -v gitleaks >/dev/null 2>&1; then
-  gitleaks detect --redact --no-banner || status=1
+  if git rev-parse --verify origin/main >/dev/null 2>&1; then
+    gitleaks detect --source . --redact --no-banner --log-opts="origin/main..HEAD" || status=1
+  else
+    gitleaks detect --source . --redact --no-banner || status=1
+  fi
 fi
 
 if command -v trufflehog >/dev/null 2>&1; then
-  trufflehog git "file://${root}" --no-update --fail || status=1
+  if git rev-parse --verify origin/main >/dev/null 2>&1; then
+    trufflehog git "file://${root}" --no-update --fail \
+      --since-commit "$(git rev-parse origin/main)" || status=1
+  else
+    trufflehog git "file://${root}" --no-update --fail || status=1
+  fi
 fi
 
-exit "$status"
+exit "${status}"

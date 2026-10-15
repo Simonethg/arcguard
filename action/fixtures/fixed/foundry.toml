@@ -1,0 +1,4 @@
+# 20 Gwei meets the Arc fee floor.
+# https://docs.arc.io/arc/references/evm-differences
+[profile.default]
+max_fee_per_gas = 20000000000

@@ -16,6 +16,8 @@ Slither encuentra bugs de Ethereum. ArcGuard busca los que aparecen al portar a 
 
 `arcaudit scan <ruta|URL-de-github> --chain arc|base|celo|all` carga los módulos instalados y normaliza cada hallazgo al mismo `Finding`: `rule_id`, `chain`, `severity`, `file`, `line`, `message`, `doc_url`. Si el extra `detectors` está instalado, un scan que incluye Arc también ejecuta ARC-001..ARC-008.
 
+La GitHub Action corre `arcaudit scan <ruta> --format sarif --output <archivo>`. Si el CLI escribe ese SARIF, el comentario del pull request y el `fail-on` salen de ahí. `ignore` se aplica después, porque el CLI no tiene ese flag. Las reglas de texto de `action/engine.py` quedan solo para un CLI que todavía no emite SARIF. Subir el archivo a Code Scanning es opcional.
+
 | Módulo | Cadena | Qué corre hoy |
 | --- | --- | --- |
 | `arcguard.arc` (`offchain/`) | Arc | ARC-OFF-1: `maxFeePerGas` o `gasPrice` por debajo de 20 Gwei en TS/JS, Foundry o Hardhat. Arc descarta la transacción en silencio. |
@@ -39,6 +41,8 @@ Con el extra `detectors`, el plugin expone ARC-001..ARC-008 y un scan de Arc los
 `--format text` (default), `json`, `sarif` (SARIF 2.1.0), or `markdown`. The process exits 1 when a finding's severity is at least `--threshold` (`info`, `low`, `medium`, `high`, `critical`; default `low`).
 
 With the `detectors` extra, the plugin exposes ARC-001..ARC-008 and an Arc scan runs them. Without that extra the lists stay empty and no Solidity analysis is simulated.
+
+The GitHub Action runs `arcaudit scan <path> --format sarif --output <file>`. When the CLI writes that SARIF, the pull request comment and `fail-on` come from it. `ignore` is applied afterwards, because the CLI has no such flag. Text rules in `action/engine.py` run only for a CLI that does not emit SARIF yet. Uploading the file to Code Scanning is optional.
 
 Referencia de producto y corpus futuro: [scaffold-arc](https://github.com/Simonethg/scaffold-arc). Fuentes de ARC-OFF-1: [EVM differences](https://docs.arc.io/arc/references/evm-differences), [porting](https://docs.arc.io/arc/tutorials/porting-contracts-to-arc), [compatibility guide](https://www.arc.io/blog/arc-compatibility-guide-for-existing-evm-apps).
 
@@ -104,13 +108,64 @@ Eso bloquea `.env*` (salvo `.env.example`), claves, keystores, JSON de cuentas d
 
 That blocks `.env*` (except `.env.example`), keys, keystores, service-account JSON, files over 50 MB, and diffs that contain credential material. If `gitleaks` or `trufflehog` is on `PATH`, the hook runs it too. The alternative config is [`.pre-commit-config.yaml`](.pre-commit-config.yaml) (`pre-commit install`).
 
+## GitHub Action
+
+`uses: Simonethg/arcguard@v0` instala este repositorio y corre `arcaudit scan`. En el pull request publica un comentario en español e inglés: cada hallazgo trae la severidad en palabras, el archivo, el arreglo sugerido y el enlace a [`docs/rules`](docs/rules/README.md). El comentario es un encabezado más una lista, así se puede leer sin depender del color.
+
+`uses: Simonethg/arcguard@v0` installs this repository and runs `arcaudit scan`. On the pull request it posts a Spanish and English comment: each finding includes the severity in words, the file, the suggested fix, and the link to [`docs/rules`](docs/rules/README.md). The comment is a heading plus a list, so it can be read without relying on color.
+
+La etiqueta `v0` la crea quien publica el release. Los workflows de este repositorio usan `uses: ./` para probar la Action del propio commit antes de que exista esa etiqueta. El mismo manifiesto está en la raíz (para `@v0`) y en [`action/action.yml`](action/action.yml) (para `uses: Simonethg/arcguard/action@v0`).
+
+The `v0` tag is created when the release is published. Workflows in this repository use `uses: ./` so they test the Action from the same commit before that tag exists. The same manifest is at the repository root (for `@v0`) and in [`action/action.yml`](action/action.yml) (for `uses: Simonethg/arcguard/action@v0`).
+
+Permisos mínimos del workflow que llama la Action: `contents: read`. `pull-requests: write` solo si `comment` queda en `true`. `security-events: write` solo si `upload-sarif` es `true`. En un repositorio privado, `actions: read` permite descargar las actions que esta composite usa. El comentario usa el token del workflow (`github.token`). No hay secretos en el repositorio: un release o un RPC de testnet, si algún día hacen falta, entran solo por GitHub Secrets.
+
+Minimum permissions for a workflow that calls the Action: `contents: read`. `pull-requests: write` is only needed when `comment` stays `true`. `security-events: write` is only needed when `upload-sarif` is `true`. On a private repository, `actions: read` lets the runner download the actions this composite uses. The comment uses the workflow token (`github.token`). This repository has no secrets: a release or a testnet RPC, if one is ever required, comes only from GitHub Secrets.
+
+`upload-sarif` es opcional. El default es `true`, y el paso usa `continue-on-error`: si el repositorio es privado y no tiene GitHub Advanced Security, Code Scanning rechaza el archivo y el check rojo o verde sigue el `fail-on`, no esa subida. En este repo los workflows dejan `upload-sarif: false`. Para activarla: `upload-sarif: true` más `security-events: write`.
+
+`upload-sarif` is optional. The default is `true`, and the step uses `continue-on-error`: if the repository is private and does not have GitHub Advanced Security, Code Scanning rejects the file and the red or green check still follows `fail-on`, not that upload. Workflows in this repo set `upload-sarif: false`. To turn the upload on: `upload-sarif: true` plus `security-events: write`.
+
+```yaml
+name: arcguard
+on: [pull_request]
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+  pull-requests: write
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Simonethg/arcguard@v0
+        with:
+          path: .
+          fail-on: high
+```
+
+Inputs: `path` (default `.`), `fail-on` (`high` por defecto / default `high`), `comment`, `upload-sarif`, `ignore`, `sarif-file`, `sarif-category`, `python-version`, `version`, `token`. El detalle está en [`action/README.md`](action/README.md).
+
+Inputs: `path` (default `.`), `fail-on` (default `high`), `comment`, `upload-sarif`, `ignore`, `sarif-file`, `sarif-category`, `python-version`, `version`, `token`. Details are in [`action/README.md`](action/README.md).
+
+`demo-vulnerable.yml` escanea `action/fixtures/vulnerable` y el check queda en rojo: `arcaudit` marca ARC-OFF-1 (high) porque `maxFeePerGas` está por debajo de 20 Gwei. El mismo fixture también manda valor a `address(0)`, usa `block.prevrandao` y llama a `selfdestruct`; esas reglas de Solidity corren con el extra `detectors`. `demo-fixed.yml` escanea la versión corregida y tiene que pasar. `arcguard.yml` ignora el corpus vulnerable y los fixtures de detectores, que existen para fallar. Si Code Scanning no está habilitado, el paso que sube el SARIF avisa y el job sigue; el check igual falla cuando hay hallazgos. ArcGuard no certifica seguridad y no reemplaza una auditoría.
+
+`demo-vulnerable.yml` scans `action/fixtures/vulnerable` and the check stays red: `arcaudit` reports ARC-OFF-1 (high) because `maxFeePerGas` is below 20 Gwei. That fixture also sends value to `address(0)`, uses `block.prevrandao`, and calls `selfdestruct`; those Solidity rules run with the `detectors` extra. `demo-fixed.yml` scans the corrected fixture and must pass. `arcguard.yml` ignores the vulnerable corpus and the detector fixtures, which exist in order to fail. If Code Scanning is not enabled, the SARIF upload step warns and the job continues; the check still fails when findings are present. ArcGuard does not certify security and does not replace an audit.
+
+Fuentes de las reglas / Rule sources:
+
+- [EVM differences](https://docs.arc.io/arc/references/evm-differences)
+- [Porting contracts to Arc](https://docs.arc.io/arc/tutorials/porting-contracts-to-arc)
+- [Arc compatibility guide for existing EVM apps](https://www.arc.io/blog/arc-compatibility-guide-for-existing-evm-apps)
+
 ## Estructura / Layout
 
 ```
 detectors/     paquete arcguard: Finding común, registro de cadenas, plugin Slither
 offchain/      arcguard.arc (ARC-OFF-1)
 cli/           arcaudit scan (arcguard.cli): texto, JSON, SARIF, Markdown
-action/        GitHub Action composite (falla cerrado: aún no escanea)
+action/        GitHub Action composite (SARIF opcional, comentario ES/EN en el PR)
 corpus/        contratos vulnerables y corregidos por regla (Arc, Base, Celo)
 tests/         pytest, incluida la validación SARIF 2.1.0
 web/           UI (todavía sin páginas)
@@ -119,9 +174,9 @@ docs/rules/    una página por regla, ES/EN
 
 ## Accesibilidad / Accessibility
 
-Este scaffold no renderiza UI. La web futura tiene que cumplir WCAG 2.1/2.2 AA en 390 px y 1440 px, con el escaneo acotado al componente que cambie. No hay hallazgos de axe-core porque no hay componente que escanear.
+Este scaffold no renderiza UI. La web futura tiene que cumplir WCAG 2.1/2.2 AA en 390 px y 1440 px, con el escaneo acotado al componente que cambie. No hay hallazgos de axe-core porque no hay componente que escanear. El comentario de la Action es Markdown con encabezado, lista y enlaces; la severidad está escrita con palabras (high, medium, low, info), no solo con color.
 
-This scaffold does not render a UI. The future web app must meet WCAG 2.1/2.2 AA at 390 px and 1440 px, with scans scoped to the component that changed. There are no axe-core findings because there is no component to scan.
+This scaffold does not render a UI. The future web app must meet WCAG 2.1/2.2 AA at 390 px and 1440 px, with scans scoped to the component that changed. There are no axe-core findings because there is no component to scan. The Action comment is Markdown with a heading, a list, and links; severity is written in words (high, medium, low, info), not by color alone.
 
 ## Licencia / License
 
