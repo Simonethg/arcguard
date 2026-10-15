@@ -1,0 +1,88 @@
+{
+  "tool": "arcaudit",
+  "version": "0.1.0",
+  "mode": "example",
+  "network": {
+    "name": "Arc Testnet",
+    "chainId": 5042002,
+    "rpcUrl": "https://rpc.testnet.arc.io"
+  },
+  "target": {
+    "kind": "example",
+    "label": "github.com/Simonethg/scaffold-arc"
+  },
+  "findings": [
+    {
+      "ruleId": "ARC-001",
+      "path": "packages/foundry/src/examples/NaiveEthereumPort.sol",
+      "symbol": "naiveValueCoversErc20",
+      "line": 14,
+      "origin": "reference",
+      "docsUrl": "https://docs.arc.io/arc/references/evm-differences#value-transfer-rules"
+    },
+    {
+      "ruleId": "ARC-003",
+      "path": "packages/foundry/src/examples/NaiveEthereumPort.sol",
+      "symbol": "naiveTotalBalance",
+      "line": 20,
+      "origin": "reference",
+      "docsUrl": "https://docs.arc.io/arc/references/evm-differences#value-transfer-rules"
+    },
+    {
+      "ruleId": "ARC-002",
+      "path": "examples/illustrative/HardcodedDecimals.sol",
+      "symbol": "needsOneUsdc",
+      "line": 3,
+      "origin": "illustrative",
+      "docsUrl": "https://docs.arc.io/arc/references/evm-differences#usdc-as-the-native-gas-token"
+    },
+    {
+      "ruleId": "ARC-004",
+      "path": "examples/illustrative/WethWrap.sol",
+      "symbol": "wrap",
+      "line": 8,
+      "origin": "illustrative",
+      "docsUrl": "https://docs.arc.io/arc/tutorials/porting-contracts-to-arc#:~:text=Audit%20DEX%2C%20AMM%2C%20and%20router%20contracts"
+    },
+    {
+      "ruleId": "ARC-005",
+      "path": "examples/illustrative/BurnToZero.sol",
+      "symbol": "burnNative",
+      "line": 4,
+      "origin": "illustrative",
+      "docsUrl": "https://docs.arc.io/arc/references/evm-differences#value-transfer-rules"
+    },
+    {
+      "ruleId": "ARC-006",
+      "path": "examples/illustrative/UncheckedSend.sol",
+      "symbol": "uncheckedSend",
+      "line": 3,
+      "origin": "illustrative",
+      "docsUrl": "https://docs.arc.io/arc/references/evm-differences#value-transfer-rules"
+    },
+    {
+      "ruleId": "ARC-007",
+      "path": "examples/illustrative/SelfdestructMove.sol",
+      "symbol": "retire",
+      "line": 5,
+      "origin": "illustrative",
+      "docsUrl": "https://docs.arc.io/arc/references/evm-differences#selfdestruct"
+    },
+    {
+      "ruleId": "ARC-008",
+      "path": "examples/illustrative/PrevrandaoDraw.sol",
+      "symbol": "winner",
+      "line": 3,
+      "origin": "illustrative",
+      "docsUrl": "https://docs.arc.io/arc/references/evm-differences#execution-and-opcode-differences"
+    },
+    {
+      "ruleId": "ARC-OFF-1",
+      "path": "examples/illustrative/send.ts",
+      "symbol": "maxFeePerGas",
+      "line": 3,
+      "origin": "illustrative",
+      "docsUrl": "https://docs.arc.io/arc/references/evm-differences#fee-market-and-block-behavior"
+    }
+  ]
+}
