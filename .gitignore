@@ -61,6 +61,8 @@ cache/
 broadcast/
 artifacts/
 typechain-types/
+crytic-export/
+.crytic/
 
 # Reports may embed source. Keep them out of git.
 *.sarif

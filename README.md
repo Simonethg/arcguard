@@ -12,9 +12,9 @@ Slither encuentra bugs de Ethereum. ArcGuard busca los que aparecen al portar a 
 
 ## Estado de este scaffold / Scaffold status
 
-`pip install -e .` instala el paquete `arcguard`, el comando `arcaudit` y el entry point de plugin de Slither (`slither_analyzer.plugin` → `arcguard.plugin:make_plugin`). `arcaudit --help` responde. `arcaudit scan` sale con código 2 y **no** ejecuta detectores: las listas del plugin están vacías a propósito, para no publicar un chequeo que todavía no existe.
+`pip install -e .` instala el paquete `arcguard`, el comando `arcaudit` y el entry point de plugin de Slither (`slither_analyzer.plugin` → `arcguard.plugin:make_plugin`). Con el extra `detectors`, el plugin registra ARC-001..ARC-008 y `slither --detect arc-...` los ejecuta. `arcaudit scan` sigue saliendo con código 2: el CLI todavía no arma el reporte.
 
-`pip install -e .` installs the `arcguard` package, the `arcaudit` command, and the Slither plugin entry point (`slither_analyzer.plugin` → `arcguard.plugin:make_plugin`). `arcaudit --help` works. `arcaudit scan` exits 2 and does **not** run detectors: the plugin lists are empty on purpose, so the tool does not advertise a check it does not perform yet.
+`pip install -e .` installs the `arcguard` package, the `arcaudit` command, and the Slither plugin entry point (`slither_analyzer.plugin` → `arcguard.plugin:make_plugin`). With the `detectors` extra, the plugin registers ARC-001..ARC-008 and `slither --detect arc-...` runs them. `arcaudit scan` still exits 2: the CLI does not build the report yet.
 
 Referencia de producto y corpus futuro: [scaffold-arc](https://github.com/Simonethg/scaffold-arc).
 
@@ -24,7 +24,7 @@ Cada regla sale de la documentación pública de Arc. El detalle está en [`docs
 
 | ID | Slug | Severidad / Severity | Qué busca / What it looks for |
 | --- | --- | --- | --- |
-| ARC-001 | `msg-value-vs-balanceof-mix` | Alta / High | Comparar, sumar o restar `msg.value` o `address.balance` (18 decimales) contra montos `balanceOf` / `transfer` de USDC ERC-20 (6 decimales) sin escalar. Mixing native value (18 decimals) with ERC-20 USDC amounts (6 decimals) without scaling. |
+| ARC-001 | `msg-value-vs-balanceof-mix` | Alta / High | Comparar, sumar o restar `msg.value` o `address.balance` (18 decimales) contra montos `balanceOf` / `transfer` de USDC ERC-20 (6 decimales) sin escalar, incluido el call site que pasa `msg.value` real a un helper. Un parámetro llamado `msgValue` mezclado solo con `balanceOf` es Media. Mixing native value (18 decimals) with ERC-20 USDC amounts (6 decimals) without scaling, including a call site that passes real `msg.value` into a helper. A `msgValue` parameter mixed only with `balanceOf` is Medium. |
 | ARC-002 | `usdc-decimals-hardcoded` | Alta / High | Suponer 6 decimales en el valor nativo, o 18 en el ERC-20. Assuming 6 decimals for native value, or 18 for the ERC-20. |
 | ARC-003 | `native-erc20-dual-asset-pool` | Alta / High | Pools, LTV u oráculos que tratan el USDC nativo y el USDC ERC-20 como dos activos. Pools, LTV, or oracles that treat native USDC and ERC-20 USDC as two assets. |
 | ARC-004 | `weth-pattern` | Media / Medium | `WETH.deposit` / `withdraw`, constantes WETH, wrap y unwrap. WETH deposit, withdraw, constants, wrap, and unwrap. |
@@ -53,7 +53,7 @@ pip install -e .
 arcaudit --help
 ```
 
-Extra opcional para cargar el plugin dentro de Slither (los detectores siguen vacíos en este scaffold): / Optional extra to load the plugin inside Slither (detectors are still empty in this scaffold):
+Extra para los detectores Slither ARC-001..ARC-008: / Extra for the Slither detectors ARC-001..ARC-008:
 
 ```bash
 pip install -e ".[detectors]"
@@ -62,7 +62,9 @@ pip install -e ".[detectors]"
 Lint y tests locales: / Local lint and tests:
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev,detectors]"
+solc-select install 0.8.28
+solc-select use 0.8.28
 ruff check .
 ruff format --check .
 pytest
