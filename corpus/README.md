@@ -70,13 +70,13 @@ El script corta si el chain id no es `5042002`, no imprime la clave y, si la var
 
 ## Hook de secretos
 
-El hook vive en `.githooks/` (raíz del repo). En un clon nuevo:
+El hook del repo es el de `main`, en `scripts/hooks`. No hay un segundo `core.hooksPath` en este corpus. En un clon nuevo:
 
 ```bash
-git config core.hooksPath .githooks
+git config core.hooksPath scripts/hooks
 ```
 
-Bloquea `.env` (excepto `.env.example`), claves y strings con forma de secreto. Antes de cada push también se puede correr `bash .githooks/scan-secrets.sh --unpushed`.
+Eso bloquea `.env` (excepto `.env.example`), claves y diffs con forma de secreto. El detalle está en el README de la raíz.
 
 ## Si este entorno no tiene Arc Foundry
 
