@@ -128,3 +128,17 @@ MIT. Copyright (c) 2026 Simoneth Gomez. Ver [LICENSE](LICENSE).
 ## Reglas Celo (heurísticas) / Celo rules (heuristics)
 
 Reglas específicas de Celo sacadas de docs.celo.org, en `detectors/celo/`. Corren con `arcaudit scan --chain celo` o `--chain all` (no son detectores de Slither). / Celo-specific rules sourced from docs.celo.org in `detectors/celo/`, run by `arcaudit scan --chain celo` or `--chain all` (not Slither detectors). Índice / Index: [docs/rules/celo](docs/rules/celo/README.md).
+
+## Reglas Base (heurísticas) / Base rules (heuristics)
+
+Reglas específicas de Base, todas sacadas de docs.base.org. Son heurísticas de texto en `detectors/base/` y corren con `arcaudit scan --chain base` (o `--chain all`). No están en el plugin de Slither. / Base-specific rules sourced from docs.base.org. They are text heuristics in `detectors/base/` and run with `arcaudit scan --chain base` (or `--chain all`). They are not in the Slither plugin.
+
+| ID | Slug | Severidad / Severity |
+| --- | --- | --- |
+| BASE-001 | [b20-union-weakens-blocklist](docs/rules/BASE-001.md) | Alta / High |
+| BASE-002 | [b20-policy-id-unchecked](docs/rules/BASE-002.md) | Media / Medium |
+| BASE-003 | [b20-seize-unguarded](docs/rules/BASE-003.md) | Alta / High |
+| BASE-004 | [validity-predicate-unsafe](docs/rules/BASE-004.md) | Media / Medium |
+| BASE-005 | [block-count-duration](docs/rules/BASE-005.md) | Alta / High |
+| BASE-OFF-1 | [flashblocks-pending-dependency](docs/rules/BASE-OFF-1.md) | Media / Medium |
+| BASE-OFF-2 | [builder-code-suffix-missing](docs/rules/BASE-OFF-2.md) | Baja / Low |
