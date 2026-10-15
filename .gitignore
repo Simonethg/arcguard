@@ -66,6 +66,9 @@ crytic-export/
 
 # Reports may embed source. Keep them out of git.
 *.sarif
+arcguard-summary.md
+arcguard-release-*.md
+.arcguard-test/
 
 # Editors and OS
 .idea/

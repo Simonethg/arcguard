@@ -1,0 +1,66 @@
+name: gitleaks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gitleaks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Depth 0 also fetches every other branch. Scan only this ref.
+          fetch-depth: 50
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install gitleaks
+        run: |
+          set -euo pipefail
+          version="8.30.1"
+          archive="gitleaks_${version}_linux_x64.tar.gz"
+          curl -sSL -o "${archive}" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${version}/${archive}"
+          tar -xzf "${archive}" gitleaks
+          sudo install -m 0755 gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Fetch the pull request base
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=50 origin "${BASE_REF}"
+
+      - name: Detect secrets introduced by this pull request
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          gitleaks detect --source . --redact --no-banner --exit-code 1 \
+            --log-opts="origin/${BASE_REF}..HEAD"
+          python3 scripts/hooks/scan_staged_diff.py --range "origin/${BASE_REF}"
+
+      - name: Detect secrets introduced by this push
+        if: github.event_name == 'push'
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [ -n "${BEFORE}" ] && [ "${BEFORE}" != "0000000000000000000000000000000000000000" ]; then
+            gitleaks detect --source . --redact --no-banner --exit-code 1 \
+              --log-opts="${BEFORE}..HEAD"
+          else
+            gitleaks detect --source . --redact --no-banner --exit-code 1 \
+              --log-opts="HEAD~1..HEAD"
+          fi

@@ -1,0 +1,38 @@
+name: arcguard
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+  pull-requests: write
+
+concurrency:
+  group: arcguard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan the repository
+        uses: ./
+        with:
+          path: .
+          fail-on: high
+          # Private repo without GitHub Advanced Security. The check does not need the upload.
+          upload-sarif: "false"
+          # Intentional failing samples. demo-vulnerable.yml scans the action fixture.
+          # The corpus and detector fixtures are supposed to contain findings.
+          ignore: |
+            action/fixtures/vulnerable
+            corpus/src/vulnerable
+            corpus/test
+            tests/fixtures/detectors
+            corpus/*/*/vulnerable.*

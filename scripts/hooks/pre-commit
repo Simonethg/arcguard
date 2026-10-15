@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Block env files, keys, and secret-shaped diffs before a commit is created.
 # Enable with: git config core.hooksPath scripts/hooks
+#
+# Scanners look at this commit's delta against the merge parent or origin/main.
+# A full-tree scan also matches material that already landed on main.
 
 set -u
 
@@ -10,12 +13,30 @@ cd "$root"
 status=0
 python3 "$root/scripts/hooks/scan_staged_diff.py" --cached || status=1
 
+base=""
+if git rev-parse --verify MERGE_HEAD >/dev/null 2>&1; then
+  base="MERGE_HEAD"
+elif git rev-parse --verify origin/main >/dev/null 2>&1; then
+  base="origin/main"
+fi
+
 if command -v gitleaks >/dev/null 2>&1; then
-  gitleaks protect --staged --redact || status=1
+  if [ -n "${base}" ]; then
+    git diff --cached "${base}" | gitleaks stdin --redact --no-banner || status=1
+  else
+    gitleaks protect --staged --redact --no-banner || status=1
+  fi
 fi
 
 if command -v trufflehog >/dev/null 2>&1; then
-  trufflehog filesystem "$root" --no-update --fail || status=1
+  if [ -n "${base}" ]; then
+    mapfile -d '' files < <(git diff --cached --name-only -z --diff-filter=ACMR "${base}")
+  else
+    mapfile -d '' files < <(git diff --cached --name-only -z --diff-filter=ACMR)
+  fi
+  if [ "${#files[@]}" -gt 0 ]; then
+    trufflehog filesystem --no-update --fail "${files[@]}" || status=1
+  fi
 fi
 
-exit "$status"
+exit "${status}"
