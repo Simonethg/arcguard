@@ -17,6 +17,10 @@ ArcGuard does not certify security and does not replace an audit. Arc testnet on
 5. Comenta el pull request en español e inglés, actualizando el comentario anterior de la misma ruta.
 6. Falla el job cuando hay hallazgos del nivel `fail-on` o más alto.
 
+Si Code Scanning no está habilitado, la subida del SARIF avisa y el job sigue. El fallo por hallazgos no depende de esa subida.
+
+If Code Scanning is not enabled, the SARIF upload warns and the job continues. A failure caused by findings does not depend on that upload.
+
 1. Installs `arcguard` from the Action checkout, or from PyPI when `version` is set.
 2. Runs `arcaudit scan`.
 3. If the CLI documents `--format sarif`, that SARIF is uploaded to Code Scanning.
