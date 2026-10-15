@@ -127,4 +127,4 @@ MIT. Copyright (c) 2026 Simoneth Gomez. Ver [LICENSE](LICENSE).
 
 ## Reglas Celo (heurísticas) / Celo rules (heuristics)
 
-Reglas específicas de Celo sacadas de docs.celo.org, en `detectors/celo/`. Todavía **no** están conectadas a Slither ni a `arcaudit scan`; usar `arcguard.celo.scan_path`. / Celo-specific rules sourced from docs.celo.org in `detectors/celo/`, **not** yet wired into Slither or `arcaudit scan`; use `arcguard.celo.scan_path`. Índice / Index: [docs/rules/celo](docs/rules/celo/README.md).
+Reglas específicas de Celo sacadas de docs.celo.org, en `detectors/celo/`. Corren con `arcaudit scan --chain celo` o `--chain all` (no son detectores de Slither). / Celo-specific rules sourced from docs.celo.org in `detectors/celo/`, run by `arcaudit scan --chain celo` or `--chain all` (not Slither detectors). Índice / Index: [docs/rules/celo](docs/rules/celo/README.md).

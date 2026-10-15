@@ -1,6 +1,6 @@
 # Reglas Celo / Celo rules
 
-Heurísticas de texto en `detectors/celo/` (`arcguard.celo.scan_path`). Todavía **no** están conectadas a Slither ni a `arcaudit scan`. Todas citan docs.celo.org. / Text heuristics in `detectors/celo/` (`arcguard.celo.scan_path`), **not** yet wired into Slither or `arcaudit scan`. All cite docs.celo.org.
+Heurísticas de texto en `detectors/celo/` (`arcguard.celo.scan_path`). Corren con `arcaudit scan --chain celo|all`; no son detectores de Slither. Todas citan docs.celo.org. / Text heuristics in `detectors/celo/` (`arcguard.celo.scan_path`), run by `arcaudit scan --chain celo|all`; not Slither detectors. All cite docs.celo.org.
 
 Un hallazgo es una pista para revisar, no prueba de un bug. ArcGuard no certifica seguridad ni reemplaza una auditoría. / A finding is a review hint, not proof of a bug. ArcGuard does not certify security or replace an audit.
 

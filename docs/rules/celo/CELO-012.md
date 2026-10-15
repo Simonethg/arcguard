@@ -2,7 +2,7 @@
 
 **Severidad / Severity:** Alta / High
 
-**Estado / Status:** heurística de texto en `detectors/celo/` (no conectada a Slither ni a `arcaudit scan`). / text heuristic in `detectors/celo/` (not wired into Slither or `arcaudit scan`).
+**Estado / Status:** heurística de texto en `detectors/celo/` (corre con `arcaudit scan --chain celo|all`; no es detector de Slither). / text heuristic in `detectors/celo/` (runs with `arcaudit scan --chain celo|all`; not a Slither detector).
 
 **Corpus:** `corpus/celo/CELO-012/` (vulnerable + fixed)
 
