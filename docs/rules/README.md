@@ -34,4 +34,4 @@ O ArcGuard não certifica segurança e não substitui uma auditoria. Somente Arc
 
 ## Celo
 
-Ver / See [celo/README.md](celo/README.md): CELO-001, 002, 003, 006, 008, 009, 010, 011, 012, 013. Heurísticas en `detectors/celo/` (`arcguard.celo.scan_path`), todavía no conectadas a Slither. / Heuristics in `detectors/celo/`, not yet wired into Slither.
+Ver / See [celo/README.md](celo/README.md): CELO-001, 002, 003, 006, 008, 009, 010, 011, 012, 013. Heurísticas en `detectors/celo/` (`arcguard.celo.scan_path`), corren con `arcaudit scan --chain celo|all`. / Heuristics in `detectors/celo/`, run by `arcaudit scan --chain celo|all`.

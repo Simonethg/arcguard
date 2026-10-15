@@ -1,8 +1,9 @@
 """Celo-specific rules (CELO-*).
 
-Text-pattern heuristics over Solidity and TypeScript/JavaScript sources. They are
-NOT wired into the Slither plugin or ``arcaudit scan`` yet (the common engine is
-still a skeleton). Use ``arcguard.celo.scan_text`` / ``scan_path`` directly.
+Text-pattern heuristics over Solidity and TypeScript/JavaScript sources. ``scan_path``
+returns the shared ``arcguard.finding.Finding`` (chain ``celo``) and is run by
+``arcaudit scan --chain celo|all`` through ``arcguard.registry``. Not a Slither
+detector.
 
 A finding is a hint for review, not proof of a bug. An empty result does not
 mean code is safe. ArcGuard does not certify security and does not replace an audit.

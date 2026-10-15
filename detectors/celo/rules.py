@@ -8,6 +8,11 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
+from arcguard.finding import Finding, canonical_severity
+
+CHAIN = "celo"
+DOC_BASE = "https://github.com/Simonethg/arcguard/blob/main/"
+
 SOL = (".sol",)
 OFFCHAIN = (".ts", ".tsx", ".js", ".mjs", ".cjs")
 
@@ -28,16 +33,6 @@ CELO_TOKEN = "0x471ece3750da237f93b8e339c536989b8978a438"  # GoldToken (CELO ERC
 
 
 @dataclass(frozen=True)
-class Finding:
-    rule_id: str
-    slug: str
-    severity: str
-    path: str
-    line: int
-    message: str
-
-
-@dataclass(frozen=True)
 class Rule:
     rule_id: str
     slug: str
@@ -45,6 +40,10 @@ class Rule:
     extensions: tuple[str, ...]
     check: Callable[[str], list[tuple[int, str]]]
     doc: str
+
+    @property
+    def doc_url(self) -> str:
+        return DOC_BASE + self.doc
 
 
 def _line(text: str, index: int) -> int:
@@ -325,7 +324,17 @@ def scan_text(text: str, path: str = "<memory>", rules: Iterable[Rule] = RULES) 
         if path != "<memory>" and suffix not in rule.extensions:
             continue
         for line, message in rule.check(clean):
-            findings.append(Finding(rule.rule_id, rule.slug, rule.severity, path, line, message))
+            findings.append(
+                Finding(
+                    rule_id=rule.rule_id,
+                    chain=CHAIN,
+                    severity=canonical_severity(rule.severity),
+                    file=path,
+                    line=line,
+                    message=message,
+                    doc_url=rule.doc_url,
+                )
+            )
     return findings
 
 
