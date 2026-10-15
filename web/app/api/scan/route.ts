@@ -1,9 +1,10 @@
 /**
  * Sandboxed scan endpoint.
  *
- * Calls `arcaudit scan` when the CLI is installed. The scaffold CLI exits
- * without a JSON report, and this route then returns the bundled example.
- * The example is labeled as an example. It is not a verdict on the input.
+ * Calls `arcaudit scan <target> --format json` when the CLI is installed.
+ * Findings in that JSON are the report. The bundled example is returned
+ * only when the CLI is missing or the JSON has no findings. The example
+ * is labeled as an example. It is not a verdict on the input.
  *
  * Arc testnet only (chain 5042002). No analytics and no third-party calls.
  *
