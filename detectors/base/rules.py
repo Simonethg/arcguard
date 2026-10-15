@@ -7,18 +7,14 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
+from arcguard.finding import Finding, canonical_severity
+
 SOL = (".sol",)
 OFFCHAIN = (".ts", ".tsx", ".js", ".mjs", ".cjs")
 
 
-@dataclass(frozen=True)
-class Finding:
-    rule_id: str
-    slug: str
-    severity: str
-    path: str
-    line: int
-    message: str
+DOC_BLOB = "https://github.com/Simonethg/arcguard/blob/main/"
+CHAIN = "base"
 
 
 @dataclass(frozen=True)
@@ -29,6 +25,10 @@ class Rule:
     extensions: tuple[str, ...]
     check: Callable[[str], list[tuple[int, str]]]
     doc: str
+
+    @property
+    def doc_url(self) -> str:
+        return DOC_BLOB + self.doc
 
 
 def _line(text: str, index: int) -> int:
@@ -263,7 +263,17 @@ def scan_text(text: str, path: str = "<memory>", rules: Iterable[Rule] = RULES) 
         if path != "<memory>" and suffix not in rule.extensions:
             continue
         for line, message in rule.check(clean):
-            findings.append(Finding(rule.rule_id, rule.slug, rule.severity, path, line, message))
+            findings.append(
+                Finding(
+                    rule_id=rule.rule_id,
+                    chain=CHAIN,
+                    severity=canonical_severity(rule.severity),
+                    file=path,
+                    line=line,
+                    message=message,
+                    doc_url=rule.doc_url,
+                )
+            )
     return findings
 
 
