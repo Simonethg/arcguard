@@ -32,18 +32,35 @@ def test_version(capsys: pytest.CaptureFixture[str]) -> None:
     assert __version__ in capsys.readouterr().out
 
 
-def test_scan_is_not_implemented(capsys: pytest.CaptureFixture[str]) -> None:
-    status = main(["scan", "."])
-    assert status == 2
-    error = capsys.readouterr().err
-    assert "not implemented" in error
-    assert "No detectors were executed" in error
+def test_scan_clean_directory_exits_zero(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    status = main(["scan", str(tmp_path), "--chain", "arc"])
+    assert status == 0
+    output = capsys.readouterr().out
+    assert "No findings" in output
+    assert "audit" in output.lower()
 
 
-def test_plugin_returns_empty_lists() -> None:
+def test_plugin_registers_arc_detectors() -> None:
     detectors, printers = make_plugin()
-    assert detectors == []
     assert printers == []
+    assert [detector.RULE_ID for detector in detectors] == [
+        "ARC-001",
+        "ARC-002",
+        "ARC-003",
+        "ARC-004",
+        "ARC-005",
+        "ARC-006",
+        "ARC-007",
+        "ARC-008",
+    ]
+    for detector in detectors:
+        assert detector.ARGUMENT.startswith("arc-")
+        assert detector.WIKI.startswith("https://")
+        assert detector.WIKI_DESCRIPTION
+        assert detector.WIKI_RECOMMENDATION
+        assert "arc.io" in detector.DOCS
 
 
 def test_version_matches_project_metadata() -> None:

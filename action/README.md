@@ -12,8 +12,8 @@ ArcGuard does not certify security and does not replace an audit. Arc testnet on
 
 1. Instala `arcguard` desde el checkout de la Action, o desde PyPI si se pasa `version`.
 2. Ejecuta `arcaudit scan`.
-3. Si `upload-sarif` es `true` y el CLI documenta `--format sarif`, intenta subir ese SARIF a Code Scanning. El paso tiene `continue-on-error`: sin GitHub Advanced Security el check no cambia.
-4. Si el CLI todavía no emite SARIF (el scaffold sale con código 2), corre igual `arcaudit scan` y escribe el SARIF con reglas de texto. Esas reglas no son el plugin de Slither.
+3. Si `upload-sarif` es `true`, intenta subir el SARIF a Code Scanning. El paso tiene `continue-on-error`: sin GitHub Advanced Security el check no cambia.
+4. Si el CLI documenta `--format sarif`, ese archivo es el reporte. `ignore` se aplica sobre los resultados, porque el CLI no tiene ese flag. Si el CLI todavía no emite SARIF, corre igual `arcaudit scan` y escribe el SARIF con reglas de texto. Esas reglas no son el plugin de Slither.
 5. Comenta el pull request en español e inglés, actualizando el comentario anterior de la misma ruta.
 6. Falla el job cuando hay hallazgos del nivel `fail-on` o más alto.
 
@@ -23,8 +23,8 @@ If Code Scanning is not enabled, the SARIF upload warns and the job continues. A
 
 1. Installs `arcguard` from the Action checkout, or from PyPI when `version` is set.
 2. Runs `arcaudit scan`.
-3. If `upload-sarif` is `true` and the CLI documents `--format sarif`, it tries to upload that SARIF to Code Scanning. The step uses `continue-on-error`: without GitHub Advanced Security the check does not change.
-4. If the CLI does not emit SARIF yet (the scaffold exits 2), it still runs `arcaudit scan` and writes SARIF from text rules. Those rules are not the Slither plugin.
+3. If `upload-sarif` is `true`, it tries to upload the SARIF to Code Scanning. The step uses `continue-on-error`: without GitHub Advanced Security the check does not change.
+4. If the CLI documents `--format sarif`, that file is the report. `ignore` is applied to the results, because the CLI has no such flag. If the CLI does not emit SARIF yet, it still runs `arcaudit scan` and writes SARIF from text rules. Those rules are not the Slither plugin.
 5. Comments on the pull request in Spanish and English, replacing the previous comment for the same path.
 6. Fails the job when a finding is at or above `fail-on`.
 
@@ -58,7 +58,7 @@ The comment token is `github.token`. Do not commit credentials. A CI secret, if 
 | `fail-on` | `high` | `none`, `info`, `low`, `medium`, `high` |
 | `comment` | `true` | Resumen en el PR / PR summary |
 | `upload-sarif` | `true` | Code Scanning. Opcional; un fallo no cambia el check. / Optional; a failure does not change the check. |
-| `ignore` | vacío / empty | Rutas relativas, una por línea / Relative paths, one per line |
+| `ignore` | vacío / empty | Rutas o globs, una por línea. También filtra el SARIF del CLI. / Paths or globs, one per line. Also filters CLI SARIF. |
 | `sarif-file` | `arcguard.sarif` | Salida / Output |
 | `sarif-category` | `arcguard` | Categoría distinta si hay varios uploads / Distinct category when several jobs upload |
 | `python-version` | `3.12` | Intérprete del install / Interpreter for the install |

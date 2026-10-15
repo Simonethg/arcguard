@@ -1,22 +1,50 @@
 # ArcGuard
 
-Escáner open source (MIT) de trampas específicas de [Arc](https://www.arc.io) al portar contratos y herramientas desde Ethereum. El comando es `arcaudit`.
+Escáner open source (MIT) de trampas al portar contratos y herramientas a **Arc**, **Base** y **Celo**. El comando es `arcaudit`. El motor es multichain: cada cadena es un módulo `arcguard.<chain>` con `scan_path(path) -> list[Finding]`.
 
-**ArcGuard no certifica seguridad y no reemplaza una auditoría.** Un reporte vacío, o un escaneo que todavía no corre, no significa que un contrato sea seguro. Este repositorio es solo **Arc testnet**. No incluye configuración de mainnet, claves ni datos personales.
+**ArcGuard no certifica seguridad y no reemplaza una auditoría.** Un reporte vacío no significa que un contrato sea seguro. Las pruebas en vivo se quedan en **testnets públicas**. Este repositorio no incluye configuración de mainnet, claves ni datos personales.
 
-Open-source (MIT) scanner for Arc-specific pitfalls when porting contracts and tooling from Ethereum. The command is `arcaudit`.
+Open-source (MIT) multichain scanner for pitfalls when porting contracts and tooling to **Arc**, **Base**, and **Celo**. The command is `arcaudit`. Each chain is an `arcguard.<chain>` module with `scan_path(path) -> list[Finding]`.
 
-**ArcGuard does not certify security and does not replace an audit.** An empty report, or a scan that does not run yet, does not mean a contract is safe. This repository targets **Arc testnet only**. It does not ship mainnet configuration, keys, or personal data.
+**ArcGuard does not certify security and does not replace an audit.** An empty report does not mean a contract is safe. Live checks stay on **public testnets**. This repository does not ship mainnet configuration, keys, or personal data.
 
-Slither encuentra bugs de Ethereum. ArcGuard busca los que aparecen al portar a Arc. / Slither finds Ethereum bugs. ArcGuard looks for the ones that show up when porting to Arc.
+Slither encuentra bugs de Ethereum. ArcGuard busca los que aparecen al portar a Arc, Base o Celo. / Slither finds Ethereum bugs. ArcGuard looks for the ones that show up when porting to Arc, Base, or Celo.
 
-## Estado de este scaffold / Scaffold status
+## Motor / Engine
 
-`pip install -e .` instala el paquete `arcguard`, el comando `arcaudit` y el entry point de plugin de Slither (`slither_analyzer.plugin` → `arcguard.plugin:make_plugin`). `arcaudit --help` responde. `arcaudit scan` sale con código 2 y **no** ejecuta detectores: las listas del plugin están vacías a propósito, para no publicar un chequeo que todavía no existe. La GitHub Action igual ejecuta ese comando. Mientras el CLI no escriba SARIF, la Action aplica reglas de texto para que un pull request con código vulnerable falle. Cuando `arcaudit scan` acepte `--format sarif --output <archivo>`, ese SARIF es el que se sube y las reglas de texto no se usan.
+`pip install -e .` instala el paquete `arcguard`, el comando `arcaudit` y el entry point de plugin de Slither (`slither_analyzer.plugin` → `arcguard.plugin:make_plugin`). Con el extra `detectors`, el plugin registra ARC-001..ARC-008.
 
-`pip install -e .` installs the `arcguard` package, the `arcaudit` command, and the Slither plugin entry point (`slither_analyzer.plugin` → `arcguard.plugin:make_plugin`). `arcaudit --help` works. `arcaudit scan` exits 2 and does **not** run detectors: the plugin lists are empty on purpose, so the tool does not advertise a check it does not perform yet. The GitHub Action still runs that command. Until the CLI writes SARIF, the Action applies text rules so a pull request with vulnerable code fails. When `arcaudit scan` accepts `--format sarif --output <file>`, that SARIF is what gets uploaded and the text rules are not used.
+`arcaudit scan <ruta|URL-de-github> --chain arc|base|celo|all` carga los módulos instalados y normaliza cada hallazgo al mismo `Finding`: `rule_id`, `chain`, `severity`, `file`, `line`, `message`, `doc_url`. Si el extra `detectors` está instalado, un scan que incluye Arc también ejecuta ARC-001..ARC-008.
 
-Referencia de producto y corpus futuro: [scaffold-arc](https://github.com/Simonethg/scaffold-arc).
+La GitHub Action corre `arcaudit scan <ruta> --format sarif --output <archivo>`. Si el CLI escribe ese SARIF, el comentario del pull request y el `fail-on` salen de ahí. `ignore` se aplica después, porque el CLI no tiene ese flag. Las reglas de texto de `action/engine.py` quedan solo para un CLI que todavía no emite SARIF. Subir el archivo a Code Scanning es opcional.
+
+| Módulo | Cadena | Qué corre hoy |
+| --- | --- | --- |
+| `arcguard.arc` (`offchain/`) | Arc | ARC-OFF-1: `maxFeePerGas` o `gasPrice` por debajo de 20 Gwei en TS/JS, Foundry o Hardhat. Arc descarta la transacción en silencio. |
+| `arcguard.base` | Base | Se llama `scan_path` del paquete Base si está instalado. Ese módulo publica `path` en vez de `file`, severidad en título y sin `chain` ni `doc_url`; el registro lo adapta y no modifica ese paquete. |
+| `arcguard.celo` | Celo | La misma firma `scan_path`. Si el paquete no está, `--chain all` deja una nota y `--chain celo` sale con código 2. |
+
+`--format text` (default), `json`, `sarif` (SARIF 2.1.0) o `markdown`. El proceso sale con código 1 si hay un hallazgo de severidad mayor o igual que `--threshold` (`info`, `low`, `medium`, `high`, `critical`; default `low`).
+
+Con el extra `detectors`, el plugin expone ARC-001..ARC-008 y un scan de Arc los ejecuta. Sin ese extra las listas quedan vacías y no se simula un análisis de Solidity.
+
+`pip install -e .` installs the `arcguard` package, the `arcaudit` command, and the Slither plugin entry point (`slither_analyzer.plugin` → `arcguard.plugin:make_plugin`).
+
+`arcaudit scan <path|github-url> --chain arc|base|celo|all` loads installed modules and normalizes every hit to the same `Finding`: `rule_id`, `chain`, `severity`, `file`, `line`, `message`, `doc_url`.
+
+| Module | Chain | What runs today |
+| --- | --- | --- |
+| `arcguard.arc` (`offchain/`) | Arc | ARC-OFF-1: `maxFeePerGas` or `gasPrice` below 20 Gwei in TS/JS, Foundry, or Hardhat. Arc drops the transaction silently. |
+| `arcguard.base` | Base | Calls that package's `scan_path` when it is installed. Its finding uses `path` rather than `file`, title-case severity, and no `chain` or `doc_url`; the registry adapts it and does not modify that package. |
+| `arcguard.celo` | Celo | Same `scan_path` signature. If the package is absent, `--chain all` records a note and `--chain celo` exits 2. |
+
+`--format text` (default), `json`, `sarif` (SARIF 2.1.0), or `markdown`. The process exits 1 when a finding's severity is at least `--threshold` (`info`, `low`, `medium`, `high`, `critical`; default `low`).
+
+With the `detectors` extra, the plugin exposes ARC-001..ARC-008 and an Arc scan runs them. Without that extra the lists stay empty and no Solidity analysis is simulated.
+
+The GitHub Action runs `arcaudit scan <path> --format sarif --output <file>`. When the CLI writes that SARIF, the pull request comment and `fail-on` come from it. `ignore` is applied afterwards, because the CLI has no such flag. Text rules in `action/engine.py` run only for a CLI that does not emit SARIF yet. Uploading the file to Code Scanning is optional.
+
+Referencia de producto y corpus futuro: [scaffold-arc](https://github.com/Simonethg/scaffold-arc). Fuentes de ARC-OFF-1: [EVM differences](https://docs.arc.io/arc/references/evm-differences), [porting](https://docs.arc.io/arc/tutorials/porting-contracts-to-arc), [compatibility guide](https://www.arc.io/blog/arc-compatibility-guide-for-existing-evm-apps).
 
 ## Reglas v0.1 / v0.1 rules
 
@@ -24,7 +52,7 @@ Cada regla sale de la documentación pública de Arc. El detalle está en [`docs
 
 | ID | Slug | Severidad / Severity | Qué busca / What it looks for |
 | --- | --- | --- | --- |
-| ARC-001 | `msg-value-vs-balanceof-mix` | Alta / High | Comparar, sumar o restar `msg.value` o `address.balance` (18 decimales) contra montos `balanceOf` / `transfer` de USDC ERC-20 (6 decimales) sin escalar. Mixing native value (18 decimals) with ERC-20 USDC amounts (6 decimals) without scaling. |
+| ARC-001 | `msg-value-vs-balanceof-mix` | Alta / High | Comparar, sumar o restar `msg.value` o `address.balance` (18 decimales) contra montos `balanceOf` / `transfer` de USDC ERC-20 (6 decimales) sin escalar, incluido el call site que pasa `msg.value` real a un helper. Un parámetro llamado `msgValue` mezclado solo con `balanceOf` es Media. Mixing native value (18 decimals) with ERC-20 USDC amounts (6 decimals) without scaling, including a call site that passes real `msg.value` into a helper. A `msgValue` parameter mixed only with `balanceOf` is Medium. |
 | ARC-002 | `usdc-decimals-hardcoded` | Alta / High | Suponer 6 decimales en el valor nativo, o 18 en el ERC-20. Assuming 6 decimals for native value, or 18 for the ERC-20. |
 | ARC-003 | `native-erc20-dual-asset-pool` | Alta / High | Pools, LTV u oráculos que tratan el USDC nativo y el USDC ERC-20 como dos activos. Pools, LTV, or oracles that treat native USDC and ERC-20 USDC as two assets. |
 | ARC-004 | `weth-pattern` | Media / Medium | `WETH.deposit` / `withdraw`, constantes WETH, wrap y unwrap. WETH deposit, withdraw, constants, wrap, and unwrap. |
@@ -53,7 +81,7 @@ pip install -e .
 arcaudit --help
 ```
 
-Extra opcional para cargar el plugin dentro de Slither (los detectores siguen vacíos en este scaffold): / Optional extra to load the plugin inside Slither (detectors are still empty in this scaffold):
+Extra para los detectores Slither ARC-001..ARC-008: / Extra for the Slither detectors ARC-001..ARC-008:
 
 ```bash
 pip install -e ".[detectors]"
@@ -62,7 +90,9 @@ pip install -e ".[detectors]"
 Lint y tests locales: / Local lint and tests:
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev,detectors]"
+solc-select install 0.8.28
+solc-select use 0.8.28
 ruff check .
 ruff format --check .
 pytest
@@ -119,9 +149,9 @@ Inputs: `path` (default `.`), `fail-on` (`high` por defecto / default `high`), `
 
 Inputs: `path` (default `.`), `fail-on` (default `high`), `comment`, `upload-sarif`, `ignore`, `sarif-file`, `sarif-category`, `python-version`, `version`, `token`. Details are in [`action/README.md`](action/README.md).
 
-`demo-vulnerable.yml` escanea `action/fixtures/vulnerable` y el check queda en rojo: ese código manda valor a `address(0)`, usa `block.prevrandao`, llama a `selfdestruct` y fija `maxFeePerGas` por debajo de 20 Gwei. `demo-fixed.yml` escanea la versión corregida y tiene que pasar. Si Code Scanning no está habilitado, el paso que sube el SARIF avisa y el job sigue; el check igual falla cuando hay hallazgos. ArcGuard no certifica seguridad y no reemplaza una auditoría.
+`demo-vulnerable.yml` escanea `action/fixtures/vulnerable` y el check queda en rojo: `arcaudit` marca ARC-OFF-1 (high) porque `maxFeePerGas` está por debajo de 20 Gwei. El mismo fixture también manda valor a `address(0)`, usa `block.prevrandao` y llama a `selfdestruct`; esas reglas de Solidity corren con el extra `detectors`. `demo-fixed.yml` escanea la versión corregida y tiene que pasar. `arcguard.yml` ignora el corpus vulnerable y los fixtures de detectores, que existen para fallar. Si Code Scanning no está habilitado, el paso que sube el SARIF avisa y el job sigue; el check igual falla cuando hay hallazgos. ArcGuard no certifica seguridad y no reemplaza una auditoría.
 
-`demo-vulnerable.yml` scans `action/fixtures/vulnerable` and the check stays red: that code sends value to `address(0)`, uses `block.prevrandao`, calls `selfdestruct`, and sets `maxFeePerGas` below 20 Gwei. `demo-fixed.yml` scans the corrected fixture and must pass. If Code Scanning is not enabled, the SARIF upload step warns and the job continues; the check still fails when findings are present. ArcGuard does not certify security and does not replace an audit.
+`demo-vulnerable.yml` scans `action/fixtures/vulnerable` and the check stays red: `arcaudit` reports ARC-OFF-1 (high) because `maxFeePerGas` is below 20 Gwei. That fixture also sends value to `address(0)`, uses `block.prevrandao`, and calls `selfdestruct`; those Solidity rules run with the `detectors` extra. `demo-fixed.yml` scans the corrected fixture and must pass. `arcguard.yml` ignores the vulnerable corpus and the detector fixtures, which exist in order to fail. If Code Scanning is not enabled, the SARIF upload step warns and the job continues; the check still fails when findings are present. ArcGuard does not certify security and does not replace an audit.
 
 Fuentes de las reglas / Rule sources:
 
@@ -132,12 +162,12 @@ Fuentes de las reglas / Rule sources:
 ## Estructura / Layout
 
 ```
-detectors/     paquete Python arcguard y plugin de Slither
-offchain/      reglas sobre TS/JS/Foundry (ARC-OFF-*)
-cli/           implementación de arcaudit (arcguard.cli)
-action/        GitHub Action composite (SARIF, comentario en el PR / PR comment)
-corpus/        contratos vulnerables y corregidos (todavía vacío)
-tests/         pytest del scaffold
+detectors/     paquete arcguard: Finding común, registro de cadenas, plugin Slither
+offchain/      arcguard.arc (ARC-OFF-1)
+cli/           arcaudit scan (arcguard.cli): texto, JSON, SARIF, Markdown
+action/        GitHub Action composite (SARIF opcional, comentario ES/EN en el PR)
+corpus/        contratos vulnerables y corregidos por regla (Arc, Base, Celo)
+tests/         pytest, incluida la validación SARIF 2.1.0
 web/           UI (todavía sin páginas)
 docs/rules/    una página por regla, ES/EN
 ```
@@ -151,3 +181,21 @@ This scaffold does not render a UI. The future web app must meet WCAG 2.1/2.2 AA
 ## Licencia / License
 
 MIT. Copyright (c) 2026 Simoneth Gomez. Ver [LICENSE](LICENSE).
+
+## Reglas Celo (heurísticas) / Celo rules (heuristics)
+
+Reglas específicas de Celo sacadas de docs.celo.org, en `detectors/celo/`. Corren con `arcaudit scan --chain celo` o `--chain all` (no son detectores de Slither). / Celo-specific rules sourced from docs.celo.org in `detectors/celo/`, run by `arcaudit scan --chain celo` or `--chain all` (not Slither detectors). Índice / Index: [docs/rules/celo](docs/rules/celo/README.md).
+
+## Reglas Base (heurísticas) / Base rules (heuristics)
+
+Reglas específicas de Base, todas sacadas de docs.base.org. Son heurísticas de texto en `detectors/base/` y corren con `arcaudit scan --chain base` (o `--chain all`). No están en el plugin de Slither. / Base-specific rules sourced from docs.base.org. They are text heuristics in `detectors/base/` and run with `arcaudit scan --chain base` (or `--chain all`). They are not in the Slither plugin.
+
+| ID | Slug | Severidad / Severity |
+| --- | --- | --- |
+| BASE-001 | [b20-union-weakens-blocklist](docs/rules/BASE-001.md) | Alta / High |
+| BASE-002 | [b20-policy-id-unchecked](docs/rules/BASE-002.md) | Media / Medium |
+| BASE-003 | [b20-seize-unguarded](docs/rules/BASE-003.md) | Alta / High |
+| BASE-004 | [validity-predicate-unsafe](docs/rules/BASE-004.md) | Media / Medium |
+| BASE-005 | [block-count-duration](docs/rules/BASE-005.md) | Alta / High |
+| BASE-OFF-1 | [flashblocks-pending-dependency](docs/rules/BASE-OFF-1.md) | Media / Medium |
+| BASE-OFF-2 | [builder-code-suffix-missing](docs/rules/BASE-OFF-2.md) | Baja / Low |

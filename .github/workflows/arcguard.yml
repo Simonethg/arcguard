@@ -28,5 +28,11 @@ jobs:
           fail-on: high
           # Private repo without GitHub Advanced Security. The check does not need the upload.
           upload-sarif: "false"
-          # The vulnerable fixture is a deliberate demo. demo-vulnerable.yml scans it.
-          ignore: action/fixtures/vulnerable
+          # Intentional failing samples. demo-vulnerable.yml scans the action fixture.
+          # The corpus and detector fixtures are supposed to contain findings.
+          ignore: |
+            action/fixtures/vulnerable
+            corpus/src/vulnerable
+            corpus/test
+            tests/fixtures/detectors
+            corpus/*/*/vulnerable.*

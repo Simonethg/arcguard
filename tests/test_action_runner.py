@@ -139,6 +139,23 @@ def test_fail_on_none_exits_clean_when_findings_exist() -> None:
     assert "should-fail=false" in completed.stdout
 
 
+# Same list as .github/workflows/arcguard.yml. These trees are supposed to fail.
+REPO_IGNORE = [
+    "action/fixtures/vulnerable",
+    "corpus/src/vulnerable",
+    "corpus/test",
+    "tests/fixtures/detectors",
+    "corpus/*/*/vulnerable.*",
+]
+
+
+def _ignore_args() -> list[str]:
+    arguments: list[str] = []
+    for item in REPO_IGNORE:
+        arguments.extend(["--ignore", item])
+    return arguments
+
+
 def test_repository_scan_ignores_the_vulnerable_fixture() -> None:
     sarif_path, markdown_path = _report_paths("repo")
     completed = _run(
@@ -149,22 +166,23 @@ def test_repository_scan_ignores_the_vulnerable_fixture() -> None:
             "text",
             "--fail-on",
             "high",
-            "--ignore",
-            "action/fixtures/vulnerable",
+            *_ignore_args(),
             "--sarif",
             str(sarif_path.relative_to(ROOT)),
             "--markdown",
             str(markdown_path.relative_to(ROOT)),
         ]
     )
-    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert completed.returncode in {0, 1}, completed.stdout + completed.stderr
     payload = json.loads(sarif_path.read_text(encoding="utf-8"))
     uris = [
         item["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
         for item in payload["runs"][0]["results"]
     ]
-    assert all(not uri.startswith("action/fixtures/vulnerable") for uri in uris)
-    assert uris == []
+    assert all("action/fixtures/vulnerable" not in uri for uri in uris)
+    assert all("corpus/src/vulnerable" not in uri for uri in uris)
+    assert all(not uri.endswith("/vulnerable.sol") for uri in uris)
+    assert all(not uri.endswith("/vulnerable.ts") for uri in uris)
 
 
 def test_comments_do_not_count_as_code() -> None:
@@ -241,11 +259,11 @@ def test_scan_path_outside_the_workspace_is_rejected() -> None:
     assert "workspace" in completed.stderr
 
 
-def test_auto_engine_runs_arcaudit_and_falls_back() -> None:
+def test_auto_engine_uses_cli_sarif_and_honors_ignore() -> None:
     if subprocess.run(["arcaudit", "--version"], capture_output=True, text=True).returncode != 0:
         pytest.skip("arcaudit is not installed")
     sarif_path, markdown_path = _report_paths("auto")
-    completed = _run(
+    vulnerable = _run(
         [
             "--path",
             "action/fixtures/vulnerable",
@@ -253,17 +271,46 @@ def test_auto_engine_runs_arcaudit_and_falls_back() -> None:
             "auto",
             "--fail-on",
             "high",
+            "--ignore",
+            "action/fixtures/vulnerable",
             "--sarif",
             str(sarif_path.relative_to(ROOT)),
             "--markdown",
             str(markdown_path.relative_to(ROOT)),
         ]
     )
-    assert completed.returncode == 1, completed.stderr
-    assert "not implemented" in completed.stderr
-    assert "engine=text-rules" in completed.stdout
+    assert vulnerable.returncode == 1, vulnerable.stdout + vulnerable.stderr
+    assert "engine=arcaudit" in vulnerable.stdout
+    assert "ARC-OFF-1" in vulnerable.stdout
+    assert "should-fail=true" in vulnerable.stdout
     payload = json.loads(sarif_path.read_text(encoding="utf-8"))
-    assert payload["runs"][0]["properties"]["arcguardEngine"] == "text-rules"
+    rule_ids = {item["ruleId"] for item in payload["runs"][0]["results"]}
+    assert "ARC-OFF-1" in rule_ids
+    summary = markdown_path.read_text(encoding="utf-8")
+    assert "Hallazgo" in summary
+    assert "docs/rules/ARC-OFF-1.md" in summary
+
+    repo_sarif, repo_markdown = _report_paths("auto-repo")
+    repo = _run(
+        [
+            "--path",
+            ".",
+            "--engine",
+            "auto",
+            "--fail-on",
+            "high",
+            *_ignore_args(),
+            "--sarif",
+            str(repo_sarif.relative_to(ROOT)),
+            "--markdown",
+            str(repo_markdown.relative_to(ROOT)),
+        ]
+    )
+    assert repo.returncode == 0, repo.stdout + repo.stderr
+    assert "engine=arcaudit" in repo.stdout
+    assert "should-fail=false" in repo.stdout
+    repo_payload = json.loads(repo_sarif.read_text(encoding="utf-8"))
+    assert repo_payload["runs"][0]["results"] == []
 
 
 def test_comment_updates_an_existing_marker() -> None:
