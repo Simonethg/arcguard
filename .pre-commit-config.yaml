@@ -1,0 +1,17 @@
+# Optional companion to scripts/hooks. The shell hooks run without this
+# framework. Install with: pre-commit install
+# Rev pin: https://github.com/gitleaks/gitleaks/releases/tag/v8.30.1
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  - repo: local
+    hooks:
+      - id: arcguard-secret-diff
+        name: block env files, keys, and secret patterns
+        entry: python3 scripts/hooks/scan_staged_diff.py --cached
+        language: system
+        pass_filenames: false
+        always_run: true

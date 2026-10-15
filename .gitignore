@@ -1,0 +1,72 @@
+# Environment and local overrides. Only .env.example is tracked.
+.env
+.env.*
+!.env.example
+.envrc
+.direnv/
+
+# Private keys, certificates, and keystores.
+*.pem
+*.p12
+*.pfx
+*.key
+*.p8
+*.jks
+*.keystore
+*keystore*
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+id_ecdsa
+id_ecdsa.*
+
+# Service-account and credential dumps.
+*service-account*.json
+*service_account*.json
+*serviceAccount*.json
+credentials.json
+*-credentials.json
+client_secret*.json
+google-services.json
+*.seed
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.python-version
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Node / web scaffold
+node_modules/
+.next/
+out/
+.turbo/
+coverage/
+
+# Foundry / Hardhat artifacts (corpus and later tests)
+cache/
+broadcast/
+artifacts/
+typechain-types/
+
+# Reports may embed source. Keep them out of git.
+*.sarif
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
