@@ -24,6 +24,7 @@ EVM_DIFFERENCES = "https://docs.arc.io/arc/references/evm-differences"
 PORTING = "https://docs.arc.io/arc/tutorials/porting-contracts-to-arc"
 COMPAT_GUIDE = "https://www.arc.io/blog/arc-compatibility-guide-for-existing-evm-apps"
 TOOL_URI = "https://github.com/Simonethg/arcguard"
+DOCS_RULES = "https://github.com/Simonethg/arcguard/blob/main/docs/rules"
 DISCLAIMER = "ArcGuard does not certify security and does not replace an audit. Arc testnet only."
 DISCLAIMER_ES = "ArcGuard no certifica seguridad y no reemplaza una auditoría. Solo Arc testnet."
 
@@ -65,6 +66,8 @@ class Rule:
     message_en: str
     message_es: str
     help_uri: str
+    fix_es: str = ""
+    fix_en: str = ""
 
 
 @dataclass(frozen=True)
@@ -93,6 +96,16 @@ RULES: dict[str, Rule] = {
             "por 1e12."
         ),
         help_uri=EVM_DIFFERENCES,
+        fix_es=(
+            "El arreglo recomendado es UsdcUnits.erc20ToNative de scaffold-arc: "
+            "convertí el monto de 6 decimales a la unidad nativa de 18 antes de "
+            "compararlo con msg.value."
+        ),
+        fix_en=(
+            "The recommended fix is scaffold-arc UsdcUnits.erc20ToNative: convert the "
+            "6-decimal amount into 18-decimal native units before comparing it with "
+            "msg.value."
+        ),
     ),
     "ARC-004": Rule(
         rule_id="ARC-004",
@@ -108,6 +121,16 @@ RULES: dict[str, Rule] = {
             "ERC-20. En Arc el activo nativo ya es USDC."
         ),
         help_uri=PORTING,
+        fix_es=(
+            "Sacá deposit y withdraw. El ERC-20 USDC canónico es la interfaz del mismo "
+            "saldo. UsdcUnits entra solo si después mezclás msg.value con montos de 6 "
+            "decimales."
+        ),
+        fix_en=(
+            "Remove deposit and withdraw. Canonical ERC-20 USDC is the interface over "
+            "the same balance. Use UsdcUnits only if you later mix msg.value with "
+            "6-decimal amounts."
+        ),
     ),
     "ARC-005": Rule(
         rule_id="ARC-005",
@@ -123,6 +146,14 @@ RULES: dict[str, Rule] = {
             "la dirección cero no está permitida: un burn nativo al estilo Ethereum no quema."
         ),
         help_uri=EVM_DIFFERENCES,
+        fix_es=(
+            "No uses address(0) como destino de valor. Si el protocolo necesita destruir "
+            "unidades, seguí el burn que documenta Arc y probalo en Arc testnet."
+        ),
+        fix_en=(
+            "Do not use address(0) as a value recipient. If the protocol needs to destroy "
+            "units, follow the burn path Arc documents and test it on Arc testnet."
+        ),
     ),
     "ARC-006": Rule(
         rule_id="ARC-006",
@@ -140,6 +171,14 @@ RULES: dict[str, Rule] = {
             "blocklist."
         ),
         help_uri=EVM_DIFFERENCES,
+        fix_es=(
+            "Comprobá el resultado del envío y definí el camino de fallo. El saldo no "
+            "prueba que la transferencia vaya a pasar."
+        ),
+        fix_en=(
+            "Check the result of the send and define the failure path. The balance does "
+            "not prove the transfer will pass."
+        ),
     ),
     "ARC-007": Rule(
         rule_id="ARC-007",
@@ -154,6 +193,14 @@ RULES: dict[str, Rule] = {
             "selfdestruct no quema el USDC del contrato en Arc. Mueve ese saldo al beneficiario."
         ),
         help_uri=EVM_DIFFERENCES,
+        fix_es=(
+            "No uses selfdestruct para retirar USDC de circulación. Transferí al "
+            "destinatario correcto, comprobá el call y probá el efecto en Arc testnet."
+        ),
+        fix_en=(
+            "Do not use selfdestruct to take USDC out of circulation. Transfer to the "
+            "intended recipient, check the call, and test the effect on Arc testnet."
+        ),
     ),
     "ARC-008": Rule(
         rule_id="ARC-008",
@@ -169,6 +216,14 @@ RULES: dict[str, Rule] = {
             "así que un sorteo o una rama que dependa de ese campo queda fijo."
         ),
         help_uri=EVM_DIFFERENCES,
+        fix_es=(
+            "Sacá block.prevrandao y block.difficulty del camino de decisión. Si el "
+            "protocolo necesita entropía, usá una fuente documentada para Arc."
+        ),
+        fix_en=(
+            "Remove block.prevrandao and block.difficulty from the decision path. If the "
+            "protocol needs entropy, use a source documented for Arc."
+        ),
     ),
     "ARC-OFF-1": Rule(
         rule_id="ARC-OFF-1",
@@ -184,6 +239,14 @@ RULES: dict[str, Rule] = {
             "silencio. El tope tiene que ser de al menos 20 Gwei en Arc testnet."
         ),
         help_uri=EVM_DIFFERENCES,
+        fix_es=(
+            "Fijá maxFeePerGas en al menos 20 Gwei para Arc testnet (chain 5042002). "
+            "No reutilices el gas price de una red Ethereum local."
+        ),
+        fix_en=(
+            "Set maxFeePerGas to at least 20 Gwei for Arc testnet (chain 5042002). Do not "
+            "reuse the gas price from a local Ethereum network."
+        ),
     ),
 }
 
@@ -560,6 +623,14 @@ def build_sarif(findings: list[Finding], version: str, engine: str, cli_note: st
     }
 
 
+def rule_doc_url(rule_id: str) -> str:
+    """Link a finding to its page under docs/rules on main."""
+
+    if rule_id in RULES:
+        return f"{DOCS_RULES}/{rule_id}.md"
+    return f"{DOCS_RULES}/README.md"
+
+
 def summary_marker(scanned_path: str) -> str:
     """HTML marker used to update an existing pull-request comment."""
 
@@ -618,9 +689,9 @@ def build_markdown(
     else:
         lines.extend(
             [
-                "El SARIF lo escribió `arcaudit`. La Action lo sube a Code Scanning.",
+                "El SARIF lo escribió `arcaudit`. Subirlo a Code Scanning es opcional.",
                 "",
-                "`arcaudit` wrote the SARIF. The Action uploads it to Code Scanning.",
+                "`arcaudit` wrote the SARIF. Uploading it to Code Scanning is optional.",
                 "",
             ]
         )
@@ -636,13 +707,21 @@ def build_markdown(
     else:
         shown = findings[:30]
         for finding in shown:
+            fix_es = finding.rule.fix_es or "Ver la página de la regla."
+            fix_en = finding.rule.fix_en or "See the rule page."
+            page = rule_doc_url(finding.rule.rule_id)
             lines.append(
-                f"- **{finding.rule.rule_id}** `{finding.rule.slug}` "
-                f"({finding.rule.severity}) `{finding.path}:{finding.line}`"
+                f"### {finding.rule.rule_id} `{finding.rule.slug}` ({finding.rule.severity})"
             )
-            lines.append(f"  - ES: {finding.rule.message_es}")
-            lines.append(f"  - EN: {finding.rule.message_en}")
-            lines.append(f"  - Doc: {finding.rule.help_uri}")
+            lines.append("")
+            lines.append(f"`{finding.path}:{finding.line}`")
+            lines.append("")
+            lines.append(f"- **Hallazgo:** {finding.rule.message_es}")
+            lines.append(f"- **Finding:** {finding.rule.message_en}")
+            lines.append(f"- **Arreglo:** {fix_es}")
+            lines.append(f"- **Fix:** {fix_en}")
+            lines.append(f"- **Regla / Rule:** [{finding.rule.rule_id}]({page})")
+            lines.append("")
         if len(findings) > len(shown):
             extra = len(findings) - len(shown)
             lines.append(f"- … {extra} hallazgos más en el SARIF. / {extra} more in the SARIF.")
@@ -663,11 +742,20 @@ def build_markdown(
         )
     lines.extend(
         [
+            "La subida del SARIF a Code Scanning es opcional. En un repositorio privado "
+            "sin GitHub Advanced Security ese paso puede fallar. Este comentario y el "
+            "check rojo o verde no dependen de esa subida.",
+            "",
+            "Uploading SARIF to Code Scanning is optional. On a private repository "
+            "without GitHub Advanced Security that step can fail. This comment and the "
+            "red or green check do not depend on that upload.",
+            "",
             "Fuentes / Sources:",
             "",
             f"- {EVM_DIFFERENCES}",
             f"- {PORTING}",
             f"- {COMPAT_GUIDE}",
+            f"- {DOCS_RULES}/README.md",
             "",
         ]
     )

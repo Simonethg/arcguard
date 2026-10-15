@@ -90,6 +90,12 @@ def test_vulnerable_fixture_fails_with_high_rules() -> None:
     assert "no certifica seguridad" in markdown
     assert "does not replace an audit" in markdown
     assert "https://docs.arc.io/arc/references/evm-differences" in markdown
+    assert "docs/rules/ARC-005.md" in markdown
+    assert "**Hallazgo:**" in markdown
+    assert "**Finding:**" in markdown
+    assert "**Arreglo:**" in markdown
+    assert "**Fix:**" in markdown
+    assert "address(0)" in markdown
 
 
 def test_fixed_fixture_is_clean() -> None:
@@ -303,7 +309,10 @@ def test_action_manifests_are_composite() -> None:
         assert "using: composite" in text
         assert "run_scan.py" in text
         assert "upload-sarif" in text
+        assert "continue-on-error: true" in text
         assert "post_comment.py" in text
+        assert "always() && steps.scan.outputs.should-fail == 'true'" in text
+        assert text.index("Upload SARIF") < text.index("Comment on the pull request")
         assert "security-severity" not in text
     root = (ROOT / "action.yml").read_text(encoding="utf-8")
     nested = (ROOT / "action" / "action.yml").read_text(encoding="utf-8")

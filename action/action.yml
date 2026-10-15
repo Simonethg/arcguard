@@ -135,7 +135,7 @@ runs:
         python "${ARCGUARD_HOME}/post_comment.py"
 
     - name: Fail when findings meet the threshold
-      if: steps.scan.outputs.should-fail == 'true'
+      if: always() && steps.scan.outputs.should-fail == 'true'
       shell: bash
       env:
         FINDING_COUNT: ${{ steps.scan.outputs.finding-count }}
