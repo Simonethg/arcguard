@@ -1,0 +1,494 @@
+/* Brand tokens follow scaffold-arc (simonethg palette) without remote fonts.
+   Link hover stays ink so the yellow accent is not used as text on the cream background.
+   Sources: https://docs.arc.io/arc/references/evm-differences */
+
+:root {
+  --ag-bg: #f4f2ea;
+  --ag-ink: #0a0a0a;
+  --ag-accent: #ffbc00;
+  --ag-accent-hover: #e6ad00;
+  --ag-muted: #3e4258;
+  --ag-surface: #ffffff;
+  --ag-border: #d8d4c8;
+  --ag-danger: #9b1c1c;
+  --ag-danger-ink: #ffffff;
+  --ag-medium: #6b4a00;
+  --ag-ok: #1a5c3a;
+  --ag-code: #141414;
+  --font-display: "Baloo 2", "Segoe UI", system-ui, sans-serif;
+  --font-body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--ag-bg);
+  color: var(--ag-ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+body {
+  min-height: 100vh;
+}
+
+a {
+  color: var(--ag-ink);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--ag-accent);
+  outline-offset: 3px;
+}
+
+h1,
+h2,
+h3,
+.brand-mark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(1.75rem, 4vw, 2.4rem);
+}
+
+h2 {
+  font-size: 1.35rem;
+}
+
+h3 {
+  font-size: 1.1rem;
+}
+
+p {
+  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+  border: 2px solid var(--ag-ink);
+  border-radius: 8px;
+  padding: 0.65rem 1.1rem;
+  background: var(--ag-accent);
+  color: var(--ag-ink);
+  font-weight: 700;
+}
+
+button:hover {
+  background: var(--ag-accent-hover);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+input[type="url"],
+input[type="file"],
+textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.65rem 0.85rem;
+  border: 2px solid var(--ag-ink);
+  border-radius: 8px;
+  background: var(--ag-surface);
+  color: var(--ag-ink);
+}
+
+textarea {
+  min-height: 9rem;
+  resize: vertical;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.9rem;
+}
+
+.shell {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem 3rem;
+}
+
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--ag-ink);
+  margin-bottom: 1.5rem;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.25rem 0;
+  text-decoration: none;
+  font-size: 1.35rem;
+}
+
+.brand-mark:hover {
+  text-decoration: none;
+}
+
+.nav-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-list a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.25rem 0.55rem;
+  font-weight: 700;
+}
+
+.header-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.locale-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.locale-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.35rem 0.7rem;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.locale-flag:hover {
+  background: transparent;
+  border-color: var(--ag-border);
+}
+
+.locale-flag[aria-pressed="true"] {
+  border-color: var(--ag-ink);
+  background: var(--ag-surface);
+}
+
+.lede,
+.hint,
+.muted {
+  color: var(--ag-muted);
+}
+
+.hero {
+  margin-bottom: 1.5rem;
+}
+
+.hero p {
+  margin-top: 0.75rem;
+  max-width: 42rem;
+}
+
+.disclaimer {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  border: 2px solid var(--ag-ink);
+  background: var(--ag-surface);
+  max-width: 42rem;
+}
+
+.panel {
+  background: var(--ag-surface);
+  border: 2px solid var(--ag-ink);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+.or-rule {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.25rem 0 1rem;
+  color: var(--ag-muted);
+  font-weight: 700;
+}
+
+.or-rule::before,
+.or-rule::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  background: var(--ag-border);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.status {
+  margin-top: 0.75rem;
+  font-weight: 700;
+}
+
+.status.error {
+  color: var(--ag-danger);
+}
+
+.finding-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.finding {
+  border: 2px solid var(--ag-ink);
+  border-radius: 12px;
+  padding: 1rem;
+  background: var(--ag-surface);
+}
+
+.finding-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-weight: 700;
+  color: var(--ag-danger-ink);
+}
+
+.badge.high {
+  background: var(--ag-danger);
+}
+
+.badge.medium {
+  background: var(--ag-medium);
+}
+
+.badge.origin {
+  background: var(--ag-ink);
+}
+
+.meta {
+  margin: 0.35rem 0 0;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.9rem;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin-top: 0.75rem;
+}
+
+.action-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.25rem 0.15rem;
+  font-weight: 700;
+}
+
+.summary-line {
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.section-gap {
+  margin-top: 1.5rem;
+}
+
+.rule-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.rule-card {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  border: 2px solid var(--ag-ink);
+  border-radius: 12px;
+  padding: 1rem;
+  background: var(--ag-surface);
+  text-decoration: none;
+  min-height: 44px;
+}
+
+.rule-card:hover {
+  background: var(--ag-bg);
+}
+
+.rule-card h2 {
+  font-size: 1.05rem;
+}
+
+.code-block {
+  margin: 0.5rem 0 0;
+  padding: 0.9rem 1rem;
+  overflow: auto;
+  background: var(--ag-code);
+  color: var(--ag-bg);
+  border-radius: 8px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.site-footer {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 2px solid var(--ag-ink);
+  color: var(--ag-muted);
+  font-size: 0.95rem;
+}
+
+.site-footer p + p,
+.site-footer ul {
+  margin-top: 0.65rem;
+}
+
+.source-list {
+  padding-left: 1.2rem;
+}
+
+.source-list a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--ag-accent);
+  color: var(--ag-ink);
+  padding: 0.75rem 1rem;
+  z-index: 100;
+  font-weight: 700;
+}
+
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.banner {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  background: var(--ag-bg);
+  border-inline-start: 6px solid var(--ag-accent);
+}
+
+dl.facts {
+  display: grid;
+  grid-template-columns: minmax(7rem, 12rem) 1fr;
+  gap: 0.35rem 0.75rem;
+  margin: 0 0 1rem;
+}
+
+dt {
+  font-weight: 700;
+}
+
+dd {
+  margin: 0;
+}
+
+details.report-json summary {
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  dl.facts {
+    grid-template-columns: 1fr;
+  }
+}
