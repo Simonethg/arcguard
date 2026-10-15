@@ -42,10 +42,19 @@ contract ArcForkTest is Test {
         assertEq(address(bad).balance, 1 ether);
     }
 
-    function test_fork_prevrandaoIsZero() public {
+    /// @notice Arc testnet headers report PREVRANDAO as 0. arc-anvil in
+    ///         Arc Foundry v0.8.0-2 still returns a non-zero value, so this
+    ///         assertion is limited to chain id 5042002.
+    function test_fork_prevrandaoIsZeroOnTestnet() public {
+        if (block.chainid != ARC_TESTNET_CHAIN_ID) {
+            vm.skip(true);
+            return;
+        }
         Arc008PrevrandaoVulnerable bad = new Arc008PrevrandaoVulnerable();
         assertEq(block.prevrandao, 0);
+        assertEq(block.difficulty, 0);
         assertEq(bad.roll(), 0);
+        assertEq(bad.rollLegacy(), 0);
     }
 
     function test_fork_baseFeeMeetsTheFloor() public view {

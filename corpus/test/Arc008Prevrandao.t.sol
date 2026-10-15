@@ -5,13 +5,15 @@ import {Test} from "forge-std/Test.sol";
 import {Arc008PrevrandaoVulnerable} from "../src/vulnerable/Arc008Prevrandao.sol";
 import {Arc008PrevrandaoFixed} from "../src/fixed/Arc008Prevrandao.sol";
 
-/// @notice Requires Arc execution. On Ethereum, PREVRANDAO is not zero.
+/// @notice The vulnerable roll is wired to PREVRANDAO. Foundry's empty
+///         block reports 0 on every network, so this file does not claim
+///         that default is Arc-specific. The Arc testnet fork test asserts
+///         the live header is 0. Local arc-anvil in this Foundry build is not.
 contract Arc008PrevrandaoTest is Test {
-    function test_prevrandaoAndDifficultyAreZero() public {
+    function test_vulnerableRollTracksPrevrandao() public {
         Arc008PrevrandaoVulnerable bad = new Arc008PrevrandaoVulnerable();
-        assertEq(block.prevrandao, 0);
-        assertEq(bad.roll(), 0);
-        assertEq(bad.rollLegacy(), 0);
+        assertEq(bad.roll(), uint256(block.prevrandao) % 100);
+        assertEq(bad.rollLegacy(), uint256(block.difficulty));
     }
 
     function test_fixedUsesOracleEntropy() public {
