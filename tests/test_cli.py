@@ -42,10 +42,25 @@ def test_scan_clean_directory_exits_zero(
     assert "audit" in output.lower()
 
 
-def test_plugin_returns_empty_lists() -> None:
+def test_plugin_registers_arc_detectors() -> None:
     detectors, printers = make_plugin()
-    assert detectors == []
     assert printers == []
+    assert [detector.RULE_ID for detector in detectors] == [
+        "ARC-001",
+        "ARC-002",
+        "ARC-003",
+        "ARC-004",
+        "ARC-005",
+        "ARC-006",
+        "ARC-007",
+        "ARC-008",
+    ]
+    for detector in detectors:
+        assert detector.ARGUMENT.startswith("arc-")
+        assert detector.WIKI.startswith("https://")
+        assert detector.WIKI_DESCRIPTION
+        assert detector.WIKI_RECOMMENDATION
+        assert "arc.io" in detector.DOCS
 
 
 def test_version_matches_project_metadata() -> None:

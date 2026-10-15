@@ -2,7 +2,9 @@
 
 Slither discovers third-party plugins through the ``slither_analyzer.plugin``
 entry-point group and calls ``make_plugin``. The callable must return
-``(detectors, printers)``. Both lists stay empty until the Arc detectors land.
+``(detectors, printers)``. With Slither installed, the detectors are
+ARC-001..ARC-008. Without it, both lists stay empty so the base install
+does not import Slither.
 
 Official references for the rules this plugin will implement:
 
@@ -17,10 +19,14 @@ from __future__ import annotations
 def make_plugin() -> tuple[list[type], list[type]]:
     """Return ArcGuard detector classes and printer classes.
 
-    Empty lists are valid: Slither's ``all()`` check over an empty plugin
-    passes, and no Arc detector is advertised before it is implemented.
-    Imports of ``AbstractDetector`` stay inside future detector modules so
-    ``pip install -e .`` does not require Slither.
+    Slither calls this when the ``detectors`` extra is installed. Without
+    Slither the import fails and both lists stay empty, so ``pip install -e .``
+    still imports the package. With Slither, ``slither --detect arc-...`` runs
+    ARC-001..ARC-008.
     """
 
-    return [], []
+    try:
+        from arcguard.all_detectors import DETECTORS
+    except ImportError:
+        return [], []
+    return list(DETECTORS), []

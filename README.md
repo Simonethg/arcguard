@@ -12,9 +12,9 @@ Slither encuentra bugs de Ethereum. ArcGuard busca los que aparecen al portar a 
 
 ## Motor / Engine
 
-`pip install -e .` instala el paquete `arcguard`, el comando `arcaudit` y el entry point de plugin de Slither (`slither_analyzer.plugin` → `arcguard.plugin:make_plugin`).
+`pip install -e .` instala el paquete `arcguard`, el comando `arcaudit` y el entry point de plugin de Slither (`slither_analyzer.plugin` → `arcguard.plugin:make_plugin`). Con el extra `detectors`, el plugin registra ARC-001..ARC-008.
 
-`arcaudit scan <ruta|URL-de-github> --chain arc|base|celo|all` carga los módulos instalados y normaliza cada hallazgo al mismo `Finding`: `rule_id`, `chain`, `severity`, `file`, `line`, `message`, `doc_url`.
+`arcaudit scan <ruta|URL-de-github> --chain arc|base|celo|all` carga los módulos instalados y normaliza cada hallazgo al mismo `Finding`: `rule_id`, `chain`, `severity`, `file`, `line`, `message`, `doc_url`. Si el extra `detectors` está instalado, un scan que incluye Arc también ejecuta ARC-001..ARC-008.
 
 | Módulo | Cadena | Qué corre hoy |
 | --- | --- | --- |
@@ -24,7 +24,7 @@ Slither encuentra bugs de Ethereum. ArcGuard busca los que aparecen al portar a 
 
 `--format text` (default), `json`, `sarif` (SARIF 2.1.0) o `markdown`. El proceso sale con código 1 si hay un hallazgo de severidad mayor o igual que `--threshold` (`info`, `low`, `medium`, `high`, `critical`; default `low`).
 
-Si el plugin de Slither ya expone detectores, un scan que incluye Arc también los ejecuta. Con las listas vacías del scaffold no se simula un análisis de Solidity.
+Con el extra `detectors`, el plugin expone ARC-001..ARC-008 y un scan de Arc los ejecuta. Sin ese extra las listas quedan vacías y no se simula un análisis de Solidity.
 
 `pip install -e .` installs the `arcguard` package, the `arcaudit` command, and the Slither plugin entry point (`slither_analyzer.plugin` → `arcguard.plugin:make_plugin`).
 
@@ -38,7 +38,7 @@ Si el plugin de Slither ya expone detectores, un scan que incluye Arc también l
 
 `--format text` (default), `json`, `sarif` (SARIF 2.1.0), or `markdown`. The process exits 1 when a finding's severity is at least `--threshold` (`info`, `low`, `medium`, `high`, `critical`; default `low`).
 
-When the Slither plugin already exposes detectors, a scan that includes Arc runs them too. Empty scaffold lists do not pretend a Solidity analysis ran.
+With the `detectors` extra, the plugin exposes ARC-001..ARC-008 and an Arc scan runs them. Without that extra the lists stay empty and no Solidity analysis is simulated.
 
 Referencia de producto y corpus futuro: [scaffold-arc](https://github.com/Simonethg/scaffold-arc). Fuentes de ARC-OFF-1: [EVM differences](https://docs.arc.io/arc/references/evm-differences), [porting](https://docs.arc.io/arc/tutorials/porting-contracts-to-arc), [compatibility guide](https://www.arc.io/blog/arc-compatibility-guide-for-existing-evm-apps).
 
@@ -48,7 +48,7 @@ Cada regla sale de la documentación pública de Arc. El detalle está en [`docs
 
 | ID | Slug | Severidad / Severity | Qué busca / What it looks for |
 | --- | --- | --- | --- |
-| ARC-001 | `msg-value-vs-balanceof-mix` | Alta / High | Comparar, sumar o restar `msg.value` o `address.balance` (18 decimales) contra montos `balanceOf` / `transfer` de USDC ERC-20 (6 decimales) sin escalar. Mixing native value (18 decimals) with ERC-20 USDC amounts (6 decimals) without scaling. |
+| ARC-001 | `msg-value-vs-balanceof-mix` | Alta / High | Comparar, sumar o restar `msg.value` o `address.balance` (18 decimales) contra montos `balanceOf` / `transfer` de USDC ERC-20 (6 decimales) sin escalar, incluido el call site que pasa `msg.value` real a un helper. Un parámetro llamado `msgValue` mezclado solo con `balanceOf` es Media. Mixing native value (18 decimals) with ERC-20 USDC amounts (6 decimals) without scaling, including a call site that passes real `msg.value` into a helper. A `msgValue` parameter mixed only with `balanceOf` is Medium. |
 | ARC-002 | `usdc-decimals-hardcoded` | Alta / High | Suponer 6 decimales en el valor nativo, o 18 en el ERC-20. Assuming 6 decimals for native value, or 18 for the ERC-20. |
 | ARC-003 | `native-erc20-dual-asset-pool` | Alta / High | Pools, LTV u oráculos que tratan el USDC nativo y el USDC ERC-20 como dos activos. Pools, LTV, or oracles that treat native USDC and ERC-20 USDC as two assets. |
 | ARC-004 | `weth-pattern` | Media / Medium | `WETH.deposit` / `withdraw`, constantes WETH, wrap y unwrap. WETH deposit, withdraw, constants, wrap, and unwrap. |
@@ -77,7 +77,7 @@ pip install -e .
 arcaudit --help
 ```
 
-Extra opcional para cargar el plugin dentro de Slither (los detectores siguen vacíos en este scaffold): / Optional extra to load the plugin inside Slither (detectors are still empty in this scaffold):
+Extra para los detectores Slither ARC-001..ARC-008: / Extra for the Slither detectors ARC-001..ARC-008:
 
 ```bash
 pip install -e ".[detectors]"
@@ -86,7 +86,9 @@ pip install -e ".[detectors]"
 Lint y tests locales: / Local lint and tests:
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev,detectors]"
+solc-select install 0.8.28
+solc-select use 0.8.28
 ruff check .
 ruff format --check .
 pytest
@@ -109,7 +111,7 @@ detectors/     paquete arcguard: Finding común, registro de cadenas, plugin Sli
 offchain/      arcguard.arc (ARC-OFF-1)
 cli/           arcaudit scan (arcguard.cli): texto, JSON, SARIF, Markdown
 action/        GitHub Action composite (falla cerrado: aún no escanea)
-corpus/        contratos vulnerables y corregidos (todavía vacío)
+corpus/        contratos vulnerables y corregidos por regla (Arc, Base, Celo)
 tests/         pytest, incluida la validación SARIF 2.1.0
 web/           UI (todavía sin páginas)
 docs/rules/    una página por regla, ES/EN
