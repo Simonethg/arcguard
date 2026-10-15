@@ -35,3 +35,17 @@ O ArcGuard não certifica segurança e não substitui uma auditoria. Somente Arc
 ## Celo
 
 Ver / See [celo/README.md](celo/README.md): CELO-001, 002, 003, 006, 008, 009, 010, 011, 012, 013. Heurísticas en `detectors/celo/` (`arcguard.celo.scan_path`), corren con `arcaudit scan --chain celo|all`. / Heuristics in `detectors/celo/`, run by `arcaudit scan --chain celo|all`.
+
+## Base
+
+| ID | Página / Page | Severidad / Severity |
+| --- | --- | --- |
+| BASE-001 | [`b20-union-weakens-blocklist`](BASE-001.md) | Alta / High |
+| BASE-002 | [`b20-policy-id-unchecked`](BASE-002.md) | Media / Medium |
+| BASE-003 | [`b20-seize-unguarded`](BASE-003.md) | Alta / High |
+| BASE-004 | [`validity-predicate-unsafe`](BASE-004.md) | Media / Medium |
+| BASE-005 | [`block-count-duration`](BASE-005.md) | Alta / High |
+| BASE-OFF-1 | [`flashblocks-pending-dependency`](BASE-OFF-1.md) | Media / Medium |
+| BASE-OFF-2 | [`builder-code-suffix-missing`](BASE-OFF-2.md) | Baja / Low |
+
+Fuentes Base / Base sources: [docs.base.org](https://docs.base.org/). Las reglas BASE-* son heurísticas en `detectors/base/` y corren con `arcaudit scan --chain base`. / BASE-* rules are heuristics in `detectors/base/` and run with `arcaudit scan --chain base`.

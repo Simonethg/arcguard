@@ -55,14 +55,14 @@ arcaudit = "arcguard.cli.main:main"
 arcguard = "arcguard.plugin:make_plugin"
 
 # detectors/ is the arcguard package. cli/ is arcguard.cli. offchain/ is
-# arcguard.arc. arcguard.base is added by the Base rules branch
-# (detectors/base); keep both package entries when merging.
+# arcguard.arc. detectors/base/ is arcguard.base (Base rules).
 [tool.setuptools]
-packages = ["arcguard", "arcguard.cli", "arcguard.arc", "arcguard.celo"]
+packages = ["arcguard", "arcguard.cli", "arcguard.arc", "arcguard.celo", "arcguard.base"]
 
 [tool.setuptools.package-dir]
 "arcguard" = "detectors"
 "arcguard.celo" = "detectors/celo"
+"arcguard.base" = "detectors/base"
 "arcguard.cli" = "cli"
 "arcguard.arc" = "offchain"
 
