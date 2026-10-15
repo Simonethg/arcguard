@@ -13,7 +13,7 @@ import pytest
 from arcguard.cli.main import main
 from arcguard.cli.targets import TargetError, parse_github, resolve_target
 from arcguard.finding import Finding, normalize_finding
-from arcguard.registry import ChainModuleError, load_scanner, scan_chains
+from arcguard.registry import CHAIN_MODULES, ChainModuleError, load_scanner, scan_chains
 
 
 @dataclass(frozen=True)
@@ -88,9 +88,7 @@ def test_scan_all_runs_a_base_module_when_it_is_installed(
     monkeypatch.setitem(sys.modules, "arcguard.base", module)
 
     findings, notes, ran = scan_chains(tmp_path, "all")
-    assert "arc" in ran and "base" in ran
-    assert "celo" not in ran
-    assert any("arcguard.celo" in note for note in notes)
+    assert ran == ("arc", "base", "celo")
     base_hits = [item for item in findings if item.chain == "base"]
     assert len(base_hits) == 1
     assert base_hits[0].file == "app.ts"
@@ -98,15 +96,29 @@ def test_scan_all_runs_a_base_module_when_it_is_installed(
     assert base_hits[0].rule_id == "BASE-OFF-2"
 
 
-def test_explicit_missing_chain_is_an_error() -> None:
+_MISSING = "arcguard.not_installed_chain"
+
+
+def test_explicit_missing_chain_is_an_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(CHAIN_MODULES, "celo", _MISSING)
     with pytest.raises(ChainModuleError):
         load_scanner("celo")
 
 
-def test_cli_missing_chain_exits_2(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_cli_missing_chain_exits_2(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setitem(CHAIN_MODULES, "celo", _MISSING)
     status = main(["scan", str(tmp_path), "--chain", "celo"])
     assert status == 2
-    assert "arcguard.celo" in capsys.readouterr().err
+    assert _MISSING in capsys.readouterr().err
+
+
+def test_scan_all_notes_a_missing_chain(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setitem(CHAIN_MODULES, "celo", _MISSING)
+    _, notes, ran = scan_chains(tmp_path, "all")
+    assert "celo" not in ran
+    assert any(_MISSING in note for note in notes)
 
 
 def test_threshold_ignores_lower_severities(
