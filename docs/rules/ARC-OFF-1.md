@@ -2,7 +2,7 @@
 
 **Severidad / Severity:** Alta / High
 
-**Estado / Status:** documentada; el chequeo off-chain no está implementado. / documented; the off-chain check is not implemented.
+**Estado / Status:** implementada en `offchain/` (`arcguard.arc.scan_path`) y en `arcaudit scan --chain arc`. / implemented in `offchain/` (`arcguard.arc.scan_path`) and `arcaudit scan --chain arc`.
 
 ## Español
 

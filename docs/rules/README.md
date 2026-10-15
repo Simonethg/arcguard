@@ -1,12 +1,12 @@
 # Reglas ArcGuard / ArcGuard rules
 
-Estas páginas describen las reglas v0.1. Los detectores todavía no corren: el plugin de Slither devuelve listas vacías y `arcaudit scan` no emite un reporte.
+Estas páginas describen las reglas v0.1. El motor es multichain (`arcguard.arc`, `arcguard.base`, `arcguard.celo`). ARC-OFF-1 ya corre en `arcaudit scan`. El plugin de Slither sigue vacío hasta que entren los detectores de Solidity. Las pruebas en vivo se quedan en testnets públicas.
 
-These pages describe the v0.1 rules. Detectors do not run yet: the Slither plugin returns empty lists and `arcaudit scan` does not emit a report.
+These pages describe the v0.1 rules. The engine is multichain (`arcguard.arc`, `arcguard.base`, `arcguard.celo`). ARC-OFF-1 already runs in `arcaudit scan`. The Slither plugin stays empty until the Solidity detectors land. Live checks stay on public testnets.
 
-ArcGuard no certifica seguridad y no reemplaza una auditoría. Solo Arc testnet.
+ArcGuard no certifica seguridad y no reemplaza una auditoría.
 
-ArcGuard does not certify security and does not replace an audit. Arc testnet only.
+ArcGuard does not certify security and does not replace an audit.
 
 ## Fuentes / Sources
 

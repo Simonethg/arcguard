@@ -1,22 +1,46 @@
 # ArcGuard
 
-Escáner open source (MIT) de trampas específicas de [Arc](https://www.arc.io) al portar contratos y herramientas desde Ethereum. El comando es `arcaudit`.
+Escáner open source (MIT) de trampas al portar contratos y herramientas a **Arc**, **Base** y **Celo**. El comando es `arcaudit`. El motor es multichain: cada cadena es un módulo `arcguard.<chain>` con `scan_path(path) -> list[Finding]`.
 
-**ArcGuard no certifica seguridad y no reemplaza una auditoría.** Un reporte vacío, o un escaneo que todavía no corre, no significa que un contrato sea seguro. Este repositorio es solo **Arc testnet**. No incluye configuración de mainnet, claves ni datos personales.
+**ArcGuard no certifica seguridad y no reemplaza una auditoría.** Un reporte vacío no significa que un contrato sea seguro. Las pruebas en vivo se quedan en **testnets públicas**. Este repositorio no incluye configuración de mainnet, claves ni datos personales.
 
-Open-source (MIT) scanner for Arc-specific pitfalls when porting contracts and tooling from Ethereum. The command is `arcaudit`.
+Open-source (MIT) multichain scanner for pitfalls when porting contracts and tooling to **Arc**, **Base**, and **Celo**. The command is `arcaudit`. Each chain is an `arcguard.<chain>` module with `scan_path(path) -> list[Finding]`.
 
-**ArcGuard does not certify security and does not replace an audit.** An empty report, or a scan that does not run yet, does not mean a contract is safe. This repository targets **Arc testnet only**. It does not ship mainnet configuration, keys, or personal data.
+**ArcGuard does not certify security and does not replace an audit.** An empty report does not mean a contract is safe. Live checks stay on **public testnets**. This repository does not ship mainnet configuration, keys, or personal data.
 
-Slither encuentra bugs de Ethereum. ArcGuard busca los que aparecen al portar a Arc. / Slither finds Ethereum bugs. ArcGuard looks for the ones that show up when porting to Arc.
+Slither encuentra bugs de Ethereum. ArcGuard busca los que aparecen al portar a Arc, Base o Celo. / Slither finds Ethereum bugs. ArcGuard looks for the ones that show up when porting to Arc, Base, or Celo.
 
-## Estado de este scaffold / Scaffold status
+## Motor / Engine
 
-`pip install -e .` instala el paquete `arcguard`, el comando `arcaudit` y el entry point de plugin de Slither (`slither_analyzer.plugin` → `arcguard.plugin:make_plugin`). `arcaudit --help` responde. `arcaudit scan` sale con código 2 y **no** ejecuta detectores: las listas del plugin están vacías a propósito, para no publicar un chequeo que todavía no existe.
+`pip install -e .` instala el paquete `arcguard`, el comando `arcaudit` y el entry point de plugin de Slither (`slither_analyzer.plugin` → `arcguard.plugin:make_plugin`).
 
-`pip install -e .` installs the `arcguard` package, the `arcaudit` command, and the Slither plugin entry point (`slither_analyzer.plugin` → `arcguard.plugin:make_plugin`). `arcaudit --help` works. `arcaudit scan` exits 2 and does **not** run detectors: the plugin lists are empty on purpose, so the tool does not advertise a check it does not perform yet.
+`arcaudit scan <ruta|URL-de-github> --chain arc|base|celo|all` carga los módulos instalados y normaliza cada hallazgo al mismo `Finding`: `rule_id`, `chain`, `severity`, `file`, `line`, `message`, `doc_url`.
 
-Referencia de producto y corpus futuro: [scaffold-arc](https://github.com/Simonethg/scaffold-arc).
+| Módulo | Cadena | Qué corre hoy |
+| --- | --- | --- |
+| `arcguard.arc` (`offchain/`) | Arc | ARC-OFF-1: `maxFeePerGas` o `gasPrice` por debajo de 20 Gwei en TS/JS, Foundry o Hardhat. Arc descarta la transacción en silencio. |
+| `arcguard.base` | Base | Se llama `scan_path` del paquete Base si está instalado. Ese módulo publica `path` en vez de `file`, severidad en título y sin `chain` ni `doc_url`; el registro lo adapta y no modifica ese paquete. |
+| `arcguard.celo` | Celo | La misma firma `scan_path`. Si el paquete no está, `--chain all` deja una nota y `--chain celo` sale con código 2. |
+
+`--format text` (default), `json`, `sarif` (SARIF 2.1.0) o `markdown`. El proceso sale con código 1 si hay un hallazgo de severidad mayor o igual que `--threshold` (`info`, `low`, `medium`, `high`, `critical`; default `low`).
+
+Si el plugin de Slither ya expone detectores, un scan que incluye Arc también los ejecuta. Con las listas vacías del scaffold no se simula un análisis de Solidity.
+
+`pip install -e .` installs the `arcguard` package, the `arcaudit` command, and the Slither plugin entry point (`slither_analyzer.plugin` → `arcguard.plugin:make_plugin`).
+
+`arcaudit scan <path|github-url> --chain arc|base|celo|all` loads installed modules and normalizes every hit to the same `Finding`: `rule_id`, `chain`, `severity`, `file`, `line`, `message`, `doc_url`.
+
+| Module | Chain | What runs today |
+| --- | --- | --- |
+| `arcguard.arc` (`offchain/`) | Arc | ARC-OFF-1: `maxFeePerGas` or `gasPrice` below 20 Gwei in TS/JS, Foundry, or Hardhat. Arc drops the transaction silently. |
+| `arcguard.base` | Base | Calls that package's `scan_path` when it is installed. Its finding uses `path` rather than `file`, title-case severity, and no `chain` or `doc_url`; the registry adapts it and does not modify that package. |
+| `arcguard.celo` | Celo | Same `scan_path` signature. If the package is absent, `--chain all` records a note and `--chain celo` exits 2. |
+
+`--format text` (default), `json`, `sarif` (SARIF 2.1.0), or `markdown`. The process exits 1 when a finding's severity is at least `--threshold` (`info`, `low`, `medium`, `high`, `critical`; default `low`).
+
+When the Slither plugin already exposes detectors, a scan that includes Arc runs them too. Empty scaffold lists do not pretend a Solidity analysis ran.
+
+Referencia de producto y corpus futuro: [scaffold-arc](https://github.com/Simonethg/scaffold-arc). Fuentes de ARC-OFF-1: [EVM differences](https://docs.arc.io/arc/references/evm-differences), [porting](https://docs.arc.io/arc/tutorials/porting-contracts-to-arc), [compatibility guide](https://www.arc.io/blog/arc-compatibility-guide-for-existing-evm-apps).
 
 ## Reglas v0.1 / v0.1 rules
 
@@ -81,12 +105,12 @@ That blocks `.env*` (except `.env.example`), keys, keystores, service-account JS
 ## Estructura / Layout
 
 ```
-detectors/     paquete Python arcguard y plugin de Slither
-offchain/      reglas sobre TS/JS/Foundry (ARC-OFF-*)
-cli/           implementación de arcaudit (arcguard.cli)
+detectors/     paquete arcguard: Finding común, registro de cadenas, plugin Slither
+offchain/      arcguard.arc (ARC-OFF-1)
+cli/           arcaudit scan (arcguard.cli): texto, JSON, SARIF, Markdown
 action/        GitHub Action composite (falla cerrado: aún no escanea)
 corpus/        contratos vulnerables y corregidos (todavía vacío)
-tests/         pytest del scaffold
+tests/         pytest, incluida la validación SARIF 2.1.0
 web/           UI (todavía sin páginas)
 docs/rules/    una página por regla, ES/EN
 ```
