@@ -27,7 +27,7 @@ El mapa regla → archivo está en [CASES.md](CASES.md). Cómo registrar hashes 
 
 Arc Foundry (`arc-forge`, `arc-cast`, `arc-anvil`), no el Foundry upstream. Guía: https://docs.arc.io/arc/tutorials/install-arc-foundry
 
-`foundry.toml` fija `network = "arc"` y `evm_version = "osaka"`. Un `forge test` de upstream no reproduce el revert a `address(0)` ni `PREVRANDAO = 0`.
+`foundry.toml` fija `network = "arc"` y `evm_version = "osaka"`. Un `forge test` de upstream no reproduce el revert a `address(0)` ni las reglas de `SELFDESTRUCT`. `PREVRANDAO = 0` se comprueba en el fork de Arc testnet (chain id `5042002`). `arc-anvil` de Arc Foundry v0.8.0-2 todavía devuelve un valor distinto de cero, y esa aserción no corre contra el chain id `31337`.
 
 ## Tests locales (sin clave)
 

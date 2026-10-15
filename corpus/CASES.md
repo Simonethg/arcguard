@@ -11,7 +11,7 @@ Cada regla tiene un contrato en `src/vulnerable/` y la versión corregida en `sr
 | ARC-005 | `value-to-zero-address` | `Arc005ValueToZero.sol` | `Arc005ValueToZero.sol` | `transfer` con valor a `address(0)` revierte `Zero address not allowed`. Valor 0 no revierte. El fix corta antes de enviar. |
 | ARC-006 | `unchecked-native-send` | `Arc006UncheckedSend.sol` | `Arc006UncheckedSend.sol` | `call{value:}` y `send` a `address(0)` fallan y el vulnerable igual deja `recordedSuccess`. El fix revierte. |
 | ARC-007 | `selfdestruct-moves-usdc` | `Arc007Selfdestruct.sol` | `Arc007Selfdestruct.sol` | `SELFDESTRUCT` a sí mismo o a `address(0)` con saldo revierte. Un pago posterior, en la misma tx, a la cuenta destruida falla. El fix retira con un call chequeado y sin `SELFDESTRUCT`. |
-| ARC-008 | `prevrandao-randomness` | `Arc008Prevrandao.sol` | `Arc008Prevrandao.sol` | `block.prevrandao` y `block.difficulty` son 0 en Arc. El fix recibe entropía externa. |
+| ARC-008 | `prevrandao-randomness` | `Arc008Prevrandao.sol` | `Arc008Prevrandao.sol` | El contrato vulnerable lee `block.prevrandao` / `block.difficulty`. En un fork de Arc testnet esos valores son 0. `arc-anvil` de Arc Foundry v0.8.0-2 todavía no los fuerza a 0, así que esa aserción corre solo con chain id `5042002`. El fix recibe entropía externa. |
 
 Fuentes citadas en cada archivo:
 
