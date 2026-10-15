@@ -58,10 +58,11 @@ arcguard = "arcguard.plugin:make_plugin"
 # arcguard.arc. arcguard.base is added by the Base rules branch
 # (detectors/base); keep both package entries when merging.
 [tool.setuptools]
-packages = ["arcguard", "arcguard.cli", "arcguard.arc"]
+packages = ["arcguard", "arcguard.cli", "arcguard.arc", "arcguard.celo"]
 
 [tool.setuptools.package-dir]
 "arcguard" = "detectors"
+"arcguard.celo" = "detectors/celo"
 "arcguard.cli" = "cli"
 "arcguard.arc" = "offchain"
 
