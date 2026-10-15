@@ -13,12 +13,14 @@ not certify that a contract is safe.
 
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import json
 import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import unquote
 
 EVM_DIFFERENCES = "https://docs.arc.io/arc/references/evm-differences"
 PORTING = "https://docs.arc.io/arc/tutorials/porting-contracts-to-arc"
@@ -31,9 +33,15 @@ DISCLAIMER_ES = "ArcGuard no certifica seguridad y no reemplaza una auditoría. 
 # 20 Gwei, in wei. Arc drops a transaction whose max fee is below this floor.
 FEE_FLOOR_WEI = 20 * 10**9
 
-SEVERITY_RANK = {"info": 0, "low": 1, "medium": 2, "high": 3}
-SARIF_LEVEL = {"info": "note", "low": "note", "medium": "warning", "high": "error"}
-SECURITY_SEVERITY = {"info": "1.0", "low": "3.0", "medium": "5.0", "high": "8.0"}
+SEVERITY_RANK = {"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
+SARIF_LEVEL = {
+    "info": "note",
+    "low": "note",
+    "medium": "warning",
+    "high": "error",
+    "critical": "error",
+}
+SECURITY_SEVERITY = {"info": "1.0", "low": "3.0", "medium": "5.0", "high": "8.0", "critical": "9.0"}
 
 CODE_SUFFIXES = {".sol", ".ts", ".tsx", ".js", ".mjs", ".cjs", ".toml"}
 SKIP_DIRS = {
@@ -495,7 +503,15 @@ def _relative(path: Path, workspace: Path) -> str:
 
 
 def _ignored(relative: str, ignore: list[str], target_relative: str) -> bool:
-    if target_relative == relative or relative.startswith(target_relative.rstrip("/") + "/"):
+    """Return whether ``relative`` is skipped.
+
+    A ``*``, ``?``, or ``[`` in an ignore entry is a glob matched against the
+    workspace-relative path (``corpus/*/*/vulnerable.*``). Any other entry is
+    a path prefix. Scanning that prefix directly still reports its findings.
+    """
+
+    normalized = relative.replace("\\", "/").lstrip("./")
+    if target_relative == normalized or normalized.startswith(target_relative.rstrip("/") + "/"):
         # The caller pointed the scan at this tree. Honor that over the ignore list.
         if target_relative not in {"", "."}:
             return False
@@ -503,9 +519,13 @@ def _ignored(relative: str, ignore: list[str], target_relative: str) -> bool:
         cleaned = item.strip().strip("/")
         if not cleaned:
             continue
+        if any(char in cleaned for char in "*?["):
+            if fnmatch.fnmatch(normalized, cleaned):
+                return True
+            continue
         if target_relative == cleaned or target_relative.startswith(cleaned + "/"):
             continue
-        if relative == cleaned or relative.startswith(cleaned + "/"):
+        if normalized == cleaned or normalized.startswith(cleaned + "/"):
             return True
     return False
 
@@ -626,7 +646,9 @@ def build_sarif(findings: list[Finding], version: str, engine: str, cli_note: st
 def rule_doc_url(rule_id: str) -> str:
     """Link a finding to its page under docs/rules on main."""
 
-    if rule_id in RULES:
+    if rule_id.startswith("CELO-"):
+        return f"{DOCS_RULES}/celo/{rule_id}.md"
+    if rule_id in RULES or rule_id.startswith(("ARC-", "BASE-")):
         return f"{DOCS_RULES}/{rule_id}.md"
     return f"{DOCS_RULES}/README.md"
 
@@ -668,8 +690,8 @@ def build_markdown(
         (
             "**Hallazgos / Findings:** "
             f"{len(findings)} "
-            f"(high: {counts['high']}, medium: {counts['medium']}, "
-            f"low: {counts['low']}, info: {counts['info']})"
+            f"(critical: {counts['critical']}, high: {counts['high']}, "
+            f"medium: {counts['medium']}, low: {counts['low']}, info: {counts['info']})"
         ),
         "",
     ]
@@ -710,6 +732,8 @@ def build_markdown(
             fix_es = finding.rule.fix_es or "Ver la página de la regla."
             fix_en = finding.rule.fix_en or "See the rule page."
             page = rule_doc_url(finding.rule.rule_id)
+            if "docs/rules" in finding.rule.help_uri:
+                page = finding.rule.help_uri
             lines.append(
                 f"### {finding.rule.rule_id} `{finding.rule.slug}` ({finding.rule.severity})"
             )
@@ -769,6 +793,43 @@ def write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
+def _result_uri(result: dict) -> str:
+    """Workspace-relative path from a SARIF result, or an empty string."""
+
+    locations = result.get("locations") or []
+    if not locations or not isinstance(locations[0], dict):
+        return ""
+    physical = locations[0].get("physicalLocation") or {}
+    artifact = physical.get("artifactLocation") or {}
+    uri = artifact.get("uri", "")
+    if not isinstance(uri, str):
+        return ""
+    return unquote(uri).replace("\\", "/").lstrip("./")
+
+
+def filter_sarif(payload: dict, ignore: list[str], target: Path, workspace: Path) -> dict:
+    """Drop SARIF results whose path is on ``ignore``.
+
+    ``arcaudit`` has no ignore flag. The Action applies ``ignore`` after the
+    CLI writes SARIF so a repository scan can skip intentional fixtures.
+    """
+
+    target_relative = _relative(target, workspace) if target.exists() else ""
+    for run in payload.get("runs", []):
+        if not isinstance(run, dict):
+            continue
+        kept = []
+        for result in run.get("results") or []:
+            if not isinstance(result, dict):
+                continue
+            uri = _result_uri(result)
+            if uri and _ignored(uri, ignore, target_relative):
+                continue
+            kept.append(result)
+        run["results"] = kept
+    return payload
+
+
 def findings_from_sarif(payload: dict) -> list[Finding]:
     """Map a CLI SARIF document back to findings for the summary and fail-on."""
 
@@ -781,9 +842,16 @@ def findings_from_sarif(payload: dict) -> list[Finding]:
             rule_id = str(result.get("ruleId", "ARC-UNKNOWN"))
             known = RULES.get(rule_id)
             level = str(result.get("level", "warning"))
-            severity = (
-                known.severity if known is not None else level_to_severity.get(level, "medium")
-            )
+            props = result.get("properties")
+            raw_severity = ""
+            if isinstance(props, dict):
+                raw_severity = str(props.get("severity", "")).lower()
+            if raw_severity in SEVERITY_RANK:
+                severity = raw_severity
+            elif known is not None:
+                severity = known.severity
+            else:
+                severity = level_to_severity.get(level, "medium")
             message = ""
             raw_message = result.get("message", {})
             if isinstance(raw_message, dict):
@@ -792,7 +860,7 @@ def findings_from_sarif(payload: dict) -> list[Finding]:
             physical = locations[0].get("physicalLocation", {}) if locations else {}
             artifact = physical.get("artifactLocation", {})
             region = physical.get("region", {})
-            uri = str(artifact.get("uri", "unknown"))
+            uri = unquote(str(artifact.get("uri", "unknown"))).replace("\\", "/")
             line = int(region.get("startLine", 1) or 1)
             meta = described.get(rule_id, {})
             short = ""

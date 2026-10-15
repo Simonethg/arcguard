@@ -5,7 +5,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { RULES, RULE_IDS, SOURCE_URLS } from "../content/rules.ts";
 import { parsePublicGithubRepo } from "../lib/github-url.ts";
-import { sanitizeCliReport } from "../lib/scan-sandbox.ts";
+import { runSandboxedScan, sanitizeCliReport } from "../lib/scan-sandbox.ts";
 import { validateSolidity } from "../lib/solidity-input.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -72,6 +72,69 @@ test("sample report is Arc testnet and only cites documented rules", () => {
     assert.ok(ids.has(row.ruleId as (typeof RULE_IDS)[number]));
     assert.ok(row.docsUrl.startsWith("https://docs.arc.io/"));
   }
+});
+
+test("real arcaudit --format json findings replace the fixture", () => {
+  const kept = sanitizeCliReport(
+    {
+      tool: "arcguard",
+      version: "0.1.0",
+      target: "Fee.sol",
+      chains_requested: "all",
+      chains_ran: ["arc"],
+      threshold: "low",
+      notes: [],
+      findings: [
+        {
+          rule_id: "BASE-001",
+          chain: "base",
+          severity: "high",
+          file: "Other.sol",
+          line: 1,
+          message: "not an Arc rule in this UI",
+          doc_url: "https://docs.base.org/example",
+        },
+        {
+          rule_id: "ARC-OFF-1",
+          chain: "arc",
+          severity: "high",
+          file: "/tmp/arcguard-scan-abc/Fee.sol",
+          line: 3,
+          message: "gasPrice is 1 Gwei, below the floor",
+          doc_url: "https://evil.example/phish",
+        },
+      ],
+    },
+    { kind: "file", label: "Fee.sol" },
+  );
+  assert.equal(kept?.mode, "cli");
+  assert.equal(kept?.network.chainId, 5042002);
+  assert.equal(kept?.findings.length, 1);
+  assert.equal(kept?.findings[0].ruleId, "ARC-OFF-1");
+  assert.equal(kept?.findings[0].path, "Fee.sol");
+  assert.equal(kept?.findings[0].line, 3);
+  assert.equal(kept?.findings[0].docsUrl.includes("evil.example"), false);
+  assert.ok(kept?.findings[0].docsUrl.startsWith("https://docs.arc.io/"));
+});
+
+test("a solidity fee below the floor uses cli json, not the example set", async () => {
+  const result = await runSandboxedScan({
+    kind: "file",
+    label: "Fee.sol",
+    filename: "Fee.sol",
+    source: "contract Fee { function f() external { tx.gasPrice = 1 gwei; } }\n",
+  });
+  if (result.mode === "example") {
+    assert.equal(result.cli.note, "missing");
+    return;
+  }
+  assert.equal(result.mode, "cli");
+  assert.equal(result.cli.parsedJson, true);
+  assert.equal(result.cli.exitCode, 1);
+  assert.ok(result.report.findings.every((row) => row.ruleId === "ARC-OFF-1"));
+  assert.equal(result.report.findings[0]?.path, "Fee.sol");
+  assert.ok(result.report.findings[0]?.docsUrl.startsWith("https://docs.arc.io/"));
+  assert.notEqual(result.report.findings.length, 9);
 });
 
 test("cli json from another chain is discarded", () => {

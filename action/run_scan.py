@@ -178,6 +178,9 @@ def run(argv: list[str] | None = None) -> int:
             mode, cli_note = consult_arcaudit(target, sarif_path, markdown_path)
             if mode == "sarif":
                 payload = json.loads(sarif_path.read_text(encoding="utf-8"))
+                if ignore:
+                    payload = _engine.filter_sarif(payload, ignore, target, workspace)
+                    _engine.write_json(sarif_path, payload)
                 findings = _engine.findings_from_sarif(payload)
                 engine_name = "arcaudit"
                 if not markdown_path.is_file():

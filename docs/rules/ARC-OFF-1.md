@@ -4,7 +4,7 @@
 
 **Severidad / Severity / Severidade:** Alta / High / Alta
 
-**Estado / Status:** Documentada. El detector no está implementado en este scaffold. / Documented. The detector is not implemented in this scaffold. / Documentada. O detector não está implementado neste scaffold.
+**Estado / Status:** Implementada. Corre con `arcaudit scan` desde `offchain/` (no es un detector de Slither). / Implemented. It runs with `arcaudit scan` from `offchain/` (it is not a Slither detector). / Implementada. Roda com `arcaudit scan` a partir de `offchain/` (não é um detector do Slither).
 
 Fuentes de la regla / Rule sources:
 
