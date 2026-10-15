@@ -1,0 +1,32 @@
+# The vulnerable-fixture job is expected to fail. It is the public demo that
+# ArcGuard rejects code which trips Arc-specific rules. demo-fixed.yml is the
+# passing control on the corrected fixture.
+
+name: demo-vulnerable
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+  pull-requests: write
+
+concurrency:
+  group: demo-vulnerable-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vulnerable-fixture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ArcGuard must fail on the vulnerable fixture
+        uses: ./
+        with:
+          path: action/fixtures/vulnerable
+          fail-on: high
+          sarif-file: arcguard-demo-vulnerable.sarif
+          sarif-category: arcguard-demo-vulnerable

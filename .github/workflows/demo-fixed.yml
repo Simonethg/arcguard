@@ -1,0 +1,26 @@
+name: demo-fixed
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: demo-fixed-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fixed-fixture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ArcGuard passes on the fixed fixture
+        uses: ./
+        with:
+          path: action/fixtures/fixed
+          fail-on: high
+          comment: "false"
+          upload-sarif: "false"
