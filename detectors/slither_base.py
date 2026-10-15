@@ -1,4 +1,8 @@
-"""Shared Slither detector base for ARC-001..ARC-008."""
+"""Shared Slither detector base for ARC-001..ARC-008.
+
+This module is ``arcguard.slither_base``. ``arcguard.base`` is the Base-chain
+heuristic package and is not a Slither detector.
+"""
 
 from __future__ import annotations
 

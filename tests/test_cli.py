@@ -32,12 +32,14 @@ def test_version(capsys: pytest.CaptureFixture[str]) -> None:
     assert __version__ in capsys.readouterr().out
 
 
-def test_scan_is_not_implemented(capsys: pytest.CaptureFixture[str]) -> None:
-    status = main(["scan", "."])
-    assert status == 2
-    error = capsys.readouterr().err
-    assert "not implemented" in error
-    assert "No detectors were executed" in error
+def test_scan_clean_directory_exits_zero(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    status = main(["scan", str(tmp_path), "--chain", "arc"])
+    assert status == 0
+    output = capsys.readouterr().out
+    assert "No findings" in output
+    assert "audit" in output.lower()
 
 
 def test_plugin_registers_arc_detectors() -> None:

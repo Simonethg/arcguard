@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from slither.detectors.abstract_detector import DetectorClassification
 
-from arcguard.base import ArcDetector
 from arcguard.rules import RULES
+from arcguard.slither_base import ArcDetector
 
 _HIGH = DetectorClassification.HIGH
 _MEDIUM = DetectorClassification.MEDIUM

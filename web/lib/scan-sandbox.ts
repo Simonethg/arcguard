@@ -5,9 +5,10 @@
  * from the host are not forwarded. User Solidity is written to a mode 0600
  * file and deleted in `finally`. It is not returned in the API response.
  *
- * If the CLI is missing, exits without JSON, or is still the scaffold that
- * refuses to scan, the bundled example report is returned and labeled as
- * an example. That is not a scan of the pasted input.
+ * The child is `arcaudit scan <target> --format json`. When that JSON
+ * contains findings, those rows are the report. The bundled example is
+ * used only when the CLI is missing, times out, or returns no findings.
+ * The example is not a scan of the pasted input.
  *
  * Sources for the rules this report describes:
  * - https://docs.arc.io/arc/references/evm-differences
@@ -58,7 +59,7 @@ function invokeArcaudit(target: string): Promise<CliResult> {
     let stderr = "";
     let settled = false;
     let timedOut = false;
-    const child = spawn(cliBin(), ["scan", target], {
+    const child = spawn(cliBin(), ["scan", target, "--format", "json"], {
       cwd: path.dirname(target),
       env: childEnv(),
       stdio: ["ignore", "pipe", "pipe"],
@@ -111,8 +112,67 @@ function cleanPath(value: string): string {
   return base;
 }
 
+const ARC_TESTNET = {
+  name: "Arc Testnet" as const,
+  chainId: 5042002 as const,
+  rpcUrl: "https://rpc.testnet.arc.io" as const,
+};
+
+function lineOf(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.max(1, Math.floor(value));
+  return 1;
+}
+
+function versionOf(value: unknown): string {
+  if (typeof value === "string" && /^[0-9]+\.[0-9]+\.[0-9]+$/.test(value)) return value;
+  return "0.1.0";
+}
+
 /**
- * Accept CLI JSON only when it is an Arc testnet arcaudit report.
+ * Map one `arcaudit scan --format json` finding (`rule_id`, `file`, `line`).
+ * Unknown rule ids are skipped. The docs link is the rule page, not the CLI string.
+ */
+function findingFromCliJson(row: Record<string, unknown>): Finding | null {
+  const ruleId = typeof row.rule_id === "string" ? row.rule_id : "";
+  if (!isRuleId(ruleId)) return null;
+  const rule = ruleById(ruleId);
+  if (!rule) return null;
+  const file = typeof row.file === "string" ? cleanPath(row.file) : "input";
+  const line = lineOf(row.line);
+  return {
+    ruleId: rule.id,
+    path: file,
+    symbol: `${file}:${line}`.slice(0, 120),
+    line,
+    origin: "illustrative",
+    docsUrl: rule.docs[0].url,
+  };
+}
+
+function reportFromRealCli(
+  record: Record<string, unknown>,
+  target: ScanReport["target"],
+): ScanReport | null {
+  if (!Array.isArray(record.findings)) return null;
+  const findings: Finding[] = [];
+  for (const item of record.findings) {
+    if (!item || typeof item !== "object") continue;
+    const mapped = findingFromCliJson(item as Record<string, unknown>);
+    if (mapped) findings.push(mapped);
+  }
+  return {
+    tool: "arcaudit",
+    version: versionOf(record.version),
+    mode: "cli",
+    network: ARC_TESTNET,
+    target,
+    findings,
+  };
+}
+
+/**
+ * Accept either the real CLI JSON (`tool: "arcguard"`, `rule_id`) or the
+ * older report shape (`tool: "arcaudit"`, Arc testnet `chainId`, `ruleId`).
  * Documentation links are replaced with the canonical rule URLs.
  */
 export function sanitizeCliReport(
@@ -121,9 +181,10 @@ export function sanitizeCliReport(
 ): ScanReport | null {
   if (!value || typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
+  if (record.tool === "arcguard") return reportFromRealCli(record, target);
   if (record.tool !== "arcaudit") return null;
   const network = record.network as Record<string, unknown> | undefined;
-  if (!network || network.chainId !== 5042002) return null;
+  if (!network || network.chainId !== ARC_TESTNET.chainId) return null;
   if (!Array.isArray(record.findings)) return null;
 
   const findings: Finding[] = [];
@@ -133,15 +194,11 @@ export function sanitizeCliReport(
     if (typeof row.ruleId !== "string" || !isRuleId(row.ruleId)) return null;
     const rule = ruleById(row.ruleId);
     if (!rule) return null;
-    const line =
-      typeof row.line === "number" && Number.isFinite(row.line)
-        ? Math.max(1, Math.floor(row.line))
-        : 1;
     findings.push({
       ruleId: rule.id,
       path: typeof row.path === "string" ? cleanPath(row.path) : "input",
       symbol: typeof row.symbol === "string" ? row.symbol.slice(0, 120) : "",
-      line,
+      line: lineOf(row.line),
       origin: row.origin === "reference" ? "reference" : "illustrative",
       docsUrl: rule.docs[0].url,
     });
@@ -149,13 +206,9 @@ export function sanitizeCliReport(
 
   return {
     tool: "arcaudit",
-    version: "0.1.0",
+    version: versionOf(record.version),
     mode: "cli",
-    network: {
-      name: "Arc Testnet",
-      chainId: 5042002,
-      rpcUrl: "https://rpc.testnet.arc.io",
-    },
+    network: ARC_TESTNET,
     target,
     findings,
   };
@@ -188,7 +241,9 @@ export async function runSandboxedScan(input: {
     }
     const cli = await invokeArcaudit(scanTarget);
     const parsed = sanitizeCliReport(parseJson(cli.stdout), target);
-    if (parsed && cli.available && !cli.timedOut) {
+    // A real JSON report replaces the fixture only when it has findings.
+    // An empty scan, or a CLI that did not speak JSON, keeps the example.
+    if (parsed && parsed.findings.length > 0 && cli.available && !cli.timedOut) {
       return {
         mode: "cli",
         cli: {

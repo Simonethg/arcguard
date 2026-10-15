@@ -6,11 +6,11 @@ These pages replace the scaffold es/en stubs. Each rule has the problem, a vulne
 
 Estas páginas substituem os stubs es/en do scaffold. Cada regra tem o problema, um exemplo vulnerável, a correção (UsdcUnits do scaffold-arc quando se aplica) e o link da seção em docs.arc.io, em espanhol, inglês e português do Brasil.
 
-ArcGuard no certifica seguridad y no reemplaza una auditoría. Solo Arc testnet (chain 5042002). ARC-001..ARC-008 corren con `slither --detect arc-...`. `arcaudit scan` todavía no emite un reporte. ARC-OFF-1 sigue sin detector.
+ArcGuard no certifica seguridad y no reemplaza una auditoría. Solo Arc testnet (chain 5042002). ARC-001..ARC-008 corren con `slither --detect arc-...` y, con el extra `detectors`, también en `arcaudit scan --chain arc`. ARC-OFF-1 corre en `offchain/` sin Slither.
 
-ArcGuard does not certify security and does not replace an audit. Arc testnet only (chain 5042002). ARC-001..ARC-008 run with `slither --detect arc-...`. `arcaudit scan` does not emit a report yet. ARC-OFF-1 still has no detector.
+ArcGuard does not certify security and does not replace an audit. Arc testnet only (chain 5042002). ARC-001..ARC-008 run with `slither --detect arc-...` and, with the `detectors` extra, inside `arcaudit scan --chain arc`. ARC-OFF-1 runs in `offchain/` without Slither.
 
-O ArcGuard não certifica segurança e não substitui uma auditoria. Somente Arc testnet (chain 5042002). ARC-001..ARC-008 rodam com `slither --detect arc-...`. `arcaudit scan` ainda não emite um relatório. ARC-OFF-1 continua sem detector.
+O ArcGuard não certifica segurança e não substitui uma auditoria. Somente Arc testnet (chain 5042002). ARC-001..ARC-008 rodam com `slither --detect arc-...` e, com o extra `detectors`, também em `arcaudit scan --chain arc`. ARC-OFF-1 roda em `offchain/` sem Slither.
 
 ## Fuentes / Sources / Fontes
 
@@ -31,3 +31,21 @@ O ArcGuard não certifica segurança e não substitui uma auditoria. Somente Arc
 | ARC-007 | [`selfdestruct-moves-usdc`](ARC-007.md) | Alta / High / Alta |
 | ARC-008 | [`prevrandao-randomness`](ARC-008.md) | Alta / High / Alta |
 | ARC-OFF-1 | [`max-fee-below-floor`](ARC-OFF-1.md) | Alta / High / Alta |
+
+## Celo
+
+Ver / See [celo/README.md](celo/README.md): CELO-001, 002, 003, 006, 008, 009, 010, 011, 012, 013. Heurísticas en `detectors/celo/` (`arcguard.celo.scan_path`), corren con `arcaudit scan --chain celo|all`. / Heuristics in `detectors/celo/`, run by `arcaudit scan --chain celo|all`.
+
+## Base
+
+| ID | Página / Page | Severidad / Severity |
+| --- | --- | --- |
+| BASE-001 | [`b20-union-weakens-blocklist`](BASE-001.md) | Alta / High |
+| BASE-002 | [`b20-policy-id-unchecked`](BASE-002.md) | Media / Medium |
+| BASE-003 | [`b20-seize-unguarded`](BASE-003.md) | Alta / High |
+| BASE-004 | [`validity-predicate-unsafe`](BASE-004.md) | Media / Medium |
+| BASE-005 | [`block-count-duration`](BASE-005.md) | Alta / High |
+| BASE-OFF-1 | [`flashblocks-pending-dependency`](BASE-OFF-1.md) | Media / Medium |
+| BASE-OFF-2 | [`builder-code-suffix-missing`](BASE-OFF-2.md) | Baja / Low |
+
+Fuentes Base / Base sources: [docs.base.org](https://docs.base.org/). Las reglas BASE-* son heurísticas en `detectors/base/` y corren con `arcaudit scan --chain base`. / BASE-* rules are heuristics in `detectors/base/` and run with `arcaudit scan --chain base`.
