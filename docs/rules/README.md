@@ -6,11 +6,11 @@ These pages replace the scaffold es/en stubs. Each rule has the problem, a vulne
 
 Estas páginas substituem os stubs es/en do scaffold. Cada regra tem o problema, um exemplo vulnerável, a correção (UsdcUnits do scaffold-arc quando se aplica) e o link da seção em docs.arc.io, em espanhol, inglês e português do Brasil.
 
-ArcGuard no certifica seguridad y no reemplaza una auditoría. Solo Arc testnet (chain 5042002). Los detectores todavía no corren: `arcaudit scan` no emite un reporte.
+ArcGuard no certifica seguridad y no reemplaza una auditoría. Solo Arc testnet (chain 5042002). ARC-001..ARC-008 corren con `slither --detect arc-...`. `arcaudit scan` todavía no emite un reporte. ARC-OFF-1 sigue sin detector.
 
-ArcGuard does not certify security and does not replace an audit. Arc testnet only (chain 5042002). Detectors do not run yet: `arcaudit scan` does not emit a report.
+ArcGuard does not certify security and does not replace an audit. Arc testnet only (chain 5042002). ARC-001..ARC-008 run with `slither --detect arc-...`. `arcaudit scan` does not emit a report yet. ARC-OFF-1 still has no detector.
 
-O ArcGuard não certifica segurança e não substitui uma auditoria. Somente Arc testnet (chain 5042002). Os detectores ainda não rodam: `arcaudit scan` não emite um relatório.
+O ArcGuard não certifica segurança e não substitui uma auditoria. Somente Arc testnet (chain 5042002). ARC-001..ARC-008 rodam com `slither --detect arc-...`. `arcaudit scan` ainda não emite um relatório. ARC-OFF-1 continua sem detector.
 
 ## Fuentes / Sources / Fontes
 
