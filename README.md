@@ -124,3 +124,7 @@ This scaffold does not render a UI. The future web app must meet WCAG 2.1/2.2 AA
 ## Licencia / License
 
 MIT. Copyright (c) 2026 Simoneth Gomez. Ver [LICENSE](LICENSE).
+
+## Reglas Celo (heurísticas) / Celo rules (heuristics)
+
+Reglas específicas de Celo sacadas de docs.celo.org, en `detectors/celo/`. Todavía **no** están conectadas a Slither ni a `arcaudit scan`; usar `arcguard.celo.scan_path`. / Celo-specific rules sourced from docs.celo.org in `detectors/celo/`, **not** yet wired into Slither or `arcaudit scan`; use `arcguard.celo.scan_path`. Índice / Index: [docs/rules/celo](docs/rules/celo/README.md).

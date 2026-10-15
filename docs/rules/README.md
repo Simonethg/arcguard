@@ -31,3 +31,7 @@ O ArcGuard não certifica segurança e não substitui uma auditoria. Somente Arc
 | ARC-007 | [`selfdestruct-moves-usdc`](ARC-007.md) | Alta / High / Alta |
 | ARC-008 | [`prevrandao-randomness`](ARC-008.md) | Alta / High / Alta |
 | ARC-OFF-1 | [`max-fee-below-floor`](ARC-OFF-1.md) | Alta / High / Alta |
+
+## Celo
+
+Ver / See [celo/README.md](celo/README.md): CELO-001, 002, 003, 006, 008, 009, 010, 011, 012, 013. Heurísticas en `detectors/celo/` (`arcguard.celo.scan_path`), todavía no conectadas a Slither. / Heuristics in `detectors/celo/`, not yet wired into Slither.
