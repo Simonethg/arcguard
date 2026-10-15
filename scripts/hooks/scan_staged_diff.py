@@ -7,6 +7,7 @@ literals it rejects. Exits 1 when a path or an added diff line matches.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -65,18 +66,59 @@ def _names(mode: str, base: str | None) -> list[str]:
     return [line for line in output.splitlines() if line.strip()]
 
 
-def _added_text(mode: str, base: str | None) -> str:
+def _added_lines(mode: str, base: str | None) -> list[tuple[str, str]]:
+    """Return (path, added line) pairs from the selected diff."""
     if mode == "cached":
         output = _git("diff", "--cached", "--unified=0")
     else:
         output = _git("diff", "--unified=0", f"{base}...HEAD")
-    added: list[str] = []
+    added: list[tuple[str, str]] = []
+    path = ""
     for line in output.splitlines():
-        if line.startswith(("+++", "---", "@@")):
+        if line.startswith("+++"):
+            target = line[4:]
+            path = target[2:] if target.startswith("b/") else target
+            continue
+        if line.startswith(("---", "@@")):
             continue
         if line.startswith("+"):
-            added.append(line[1:])
-    return "\n".join(added)
+            added.append((path, line[1:]))
+    return added
+
+
+# A tx hash is 64 hex chars, same shape as a private key. It is allowed only
+# as a full Arc testnet explorer tx URL, and only in the corpus evidence file.
+TX_URL_ALLOWED_PATH = "corpus/EVIDENCE.md"
+TX_URL = re.compile(r"https://explorer\.testnet\.arc\.io/tx/0x[0-9a-fA-F]{64}(?![0-9a-fA-F])")
+KEY_ENV = "ARC_TESTNET_PRIVATE_KEY"
+
+
+def _key_variants(key: str | None) -> list[str]:
+    if not key:
+        return []
+    bare = key.strip()
+    if bare[:2].lower() == "0x":
+        bare = bare[2:]
+    if len(bare) < 16:
+        return []
+    return [bare.lower()]
+
+
+def scan_lines(lines: list[tuple[str, str]], key: str | None = None) -> list[str]:
+    """Return labels (never values) of the checks the added lines fail."""
+    variants = _key_variants(key)
+    hits: list[str] = []
+    for path, line in lines:
+        lowered = line.lower()
+        if any(v in lowered for v in variants):
+            hits.append(f"{KEY_ENV} value")
+        for label, pattern in CONTENT_PATTERNS:
+            text = line
+            if label == "hex-64" and path == TX_URL_ALLOWED_PATH:
+                text = TX_URL.sub("", line)
+            if pattern.search(text):
+                hits.append(label)
+    return sorted(set(hits))
 
 
 def _blocked_name(path: str) -> str | None:
@@ -145,11 +187,10 @@ def scan(mode: str, base: str | None) -> int:
             print(f"blocked file over 50MB: {path}", file=sys.stderr)
             failed = True
 
-    added = _added_text(mode, base)
-    for label, pattern in CONTENT_PATTERNS:
-        if pattern.search(added):
-            print(f"blocked: diff matches secret pattern ({label})", file=sys.stderr)
-            failed = True
+    lines = _added_lines(mode, base)
+    for label in scan_lines(lines, os.environ.get(KEY_ENV)):
+        print(f"blocked: diff matches secret pattern ({label})", file=sys.stderr)
+        failed = True
     return 1 if failed else 0
 
 

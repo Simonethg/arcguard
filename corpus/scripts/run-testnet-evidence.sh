@@ -47,8 +47,10 @@ send_failing() {
     --rpc-url "$RPC" \
     --private-key "$ARC_TESTNET_PRIVATE_KEY" \
     --gas-price 20gwei \
+    --gas-limit 100000 \
+    --timeout 60 \
     --value 1wei \
-    "$to")
+    "$to") || { printf "%s\tno receipt (rejected by RPC or dropped)\n" "$label"; return 0; }
   python3 -c '
 import json, sys
 label, raw = sys.argv[1], sys.argv[2]
