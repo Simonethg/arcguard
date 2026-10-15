@@ -1,0 +1,3 @@
+[submodule "corpus/lib/forge-std"]
+	path = corpus/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
