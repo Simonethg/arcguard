@@ -115,9 +115,9 @@ Inputs: `path` (default `.`), `fail-on` (`high` por defecto / default `high`), `
 
 Inputs: `path` (default `.`), `fail-on` (default `high`), `comment`, `upload-sarif`, `ignore`, `sarif-file`, `sarif-category`, `python-version`, `version`, `token`. Details are in [`action/README.md`](action/README.md).
 
-`demo-vulnerable.yml` escanea `action/fixtures/vulnerable` y el check queda en rojo: ese código manda valor a `address(0)`, usa `block.prevrandao`, llama a `selfdestruct` y fija `maxFeePerGas` por debajo de 20 Gwei. `demo-fixed.yml` escanea la versión corregida y tiene que pasar. ArcGuard no certifica seguridad y no reemplaza una auditoría.
+`demo-vulnerable.yml` escanea `action/fixtures/vulnerable` y el check queda en rojo: ese código manda valor a `address(0)`, usa `block.prevrandao`, llama a `selfdestruct` y fija `maxFeePerGas` por debajo de 20 Gwei. `demo-fixed.yml` escanea la versión corregida y tiene que pasar. Si Code Scanning no está habilitado, el paso que sube el SARIF avisa y el job sigue; el check igual falla cuando hay hallazgos. ArcGuard no certifica seguridad y no reemplaza una auditoría.
 
-`demo-vulnerable.yml` scans `action/fixtures/vulnerable` and the check stays red: that code sends value to `address(0)`, uses `block.prevrandao`, calls `selfdestruct`, and sets `maxFeePerGas` below 20 Gwei. `demo-fixed.yml` scans the corrected fixture and must pass. ArcGuard does not certify security and does not replace an audit.
+`demo-vulnerable.yml` scans `action/fixtures/vulnerable` and the check stays red: that code sends value to `address(0)`, uses `block.prevrandao`, calls `selfdestruct`, and sets `maxFeePerGas` below 20 Gwei. `demo-fixed.yml` scans the corrected fixture and must pass. If Code Scanning is not enabled, the SARIF upload step warns and the job continues; the check still fails when findings are present. ArcGuard does not certify security and does not replace an audit.
 
 Fuentes de las reglas / Rule sources:
 
