@@ -57,8 +57,12 @@ def test_seize_with_hasrole_guard_is_clean() -> None:
     assert [f for f in scan_text(src, "c.sol") if f.rule_id == "BASE-003"] == []
 
 
-def test_base_rules_are_not_advertised_through_slither_yet() -> None:
-    assert make_plugin() == ([], [])
+def test_base_rules_are_not_slither_detectors() -> None:
+    detectors, printers = make_plugin()
+    assert printers == []
+    ids = {detector.RULE_ID for detector in detectors}
+    assert ids == {f"ARC-00{index}" for index in range(1, 9)}
+    assert not any(rule_id.startswith("BASE-") for rule_id in ids)
 
 
 def test_findings_use_the_shared_format() -> None:

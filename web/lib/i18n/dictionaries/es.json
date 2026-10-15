@@ -63,7 +63,7 @@
   "rules.title": "Reglas v0.1",
   "rules.lede": "Cada página tiene el problema, un ejemplo vulnerable, el arreglo y el enlace a la sección de docs.arc.io. Los detectores todavía no corren.",
   "rules.open": "Abrir",
-  "rule.status": "Documentada. El detector no está implementado en este scaffold.",
+  "rule.status": "Implementada. ARC-001..ARC-008 corren con slither --detect arc-... y en arcaudit scan --chain arc. ARC-OFF-1 corre con arcaudit scan (offchain/).",
   "rule.problem": "Problema",
   "rule.vulnerable": "Ejemplo vulnerable",
   "rule.fix": "Arreglo",

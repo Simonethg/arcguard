@@ -72,7 +72,11 @@ def _convert(detector: object, result: object, root: Path) -> Finding:
     if isinstance(result, dict):
         message = str(result.get("description") or getattr(detector, "HELP", "") or "Arc detector")
         impact = result.get("impact") or getattr(detector, "IMPACT", "High")
-        rule_id = str(result.get("check") or getattr(detector, "ARGUMENT", "arc-detector"))
+        extra = result.get("additional_fields")
+        fields = extra if isinstance(extra, dict) else {}
+        rule_id = str(
+            fields.get("id") or result.get("check") or getattr(detector, "ARGUMENT", "arc-detector")
+        )
         filename, line = _location(result, root)
     else:
         message = str(getattr(result, "description", "") or getattr(detector, "HELP", ""))

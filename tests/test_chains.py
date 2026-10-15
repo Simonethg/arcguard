@@ -179,9 +179,12 @@ def test_resolve_target_clones_without_using_the_network(tmp_path: Path) -> None
     assert not root.exists()
 
 
-def test_slither_bridge_skips_when_the_plugin_is_empty(tmp_path: Path) -> None:
-    from arcguard.cli.slither_bridge import slither_findings
+def test_slither_bridge_skips_when_the_plugin_is_empty(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from arcguard.cli import slither_bridge
 
-    findings, notes = slither_findings(tmp_path)
+    monkeypatch.setattr(slither_bridge, "make_plugin", lambda: ([], []))
+    findings, notes = slither_bridge.slither_findings(tmp_path)
     assert findings == []
     assert notes == []

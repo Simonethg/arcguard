@@ -59,7 +59,11 @@ def test_usdm_with_18_decimals_is_not_flagged() -> None:
 
 
 def test_celo_rules_are_not_slither_detectors() -> None:
-    assert make_plugin() == ([], [])
+    detectors, printers = make_plugin()
+    assert printers == []
+    ids = {detector.RULE_ID for detector in detectors}
+    assert ids == {f"ARC-00{index}" for index in range(1, 9)}
+    assert not any(rule_id.startswith("CELO-") for rule_id in ids)
 
 
 def test_findings_use_the_shared_format() -> None:
