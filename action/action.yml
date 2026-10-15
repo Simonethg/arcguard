@@ -1,0 +1,21 @@
+name: ArcGuard
+description: >
+  Scaffold for the ArcGuard composite action. Scanning, SARIF upload, and
+  pull-request comments are not implemented. This step fails closed so a
+  workflow cannot go green without a real scan.
+
+inputs:
+  path:
+    description: Path that a future release will scan.
+    required: false
+    default: "."
+
+runs:
+  using: composite
+  steps:
+    - name: Refuse an empty success
+      shell: bash
+      run: |
+        echo "ArcGuard action scaffold: scan is not implemented."
+        echo "No SARIF was uploaded and no Arc testnet check ran."
+        exit 1
