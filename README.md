@@ -80,17 +80,21 @@ That blocks `.env*` (except `.env.example`), keys, keystores, service-account JS
 
 ## GitHub Action
 
-`uses: Simonethg/arcguard@v0` instala este repositorio, corre `arcaudit scan` y sube el SARIF a Code Scanning. En el pull request publica un resumen en español e inglés. El comentario usa una lista (identificador, severidad en palabras, archivo y enlace a la doc), así se puede leer sin depender del color.
+`uses: Simonethg/arcguard@v0` instala este repositorio y corre `arcaudit scan`. En el pull request publica un comentario en español e inglés: cada hallazgo trae la severidad en palabras, el archivo, el arreglo sugerido y el enlace a [`docs/rules`](docs/rules/README.md). El comentario es un encabezado más una lista, así se puede leer sin depender del color.
 
-`uses: Simonethg/arcguard@v0` installs this repository, runs `arcaudit scan`, and uploads SARIF to Code Scanning. On the pull request it posts a Spanish and English summary. The comment is a list (identifier, severity in words, file, and a link to the docs), so it can be read without relying on color.
+`uses: Simonethg/arcguard@v0` installs this repository and runs `arcaudit scan`. On the pull request it posts a Spanish and English comment: each finding includes the severity in words, the file, the suggested fix, and the link to [`docs/rules`](docs/rules/README.md). The comment is a heading plus a list, so it can be read without relying on color.
 
 La etiqueta `v0` la crea quien publica el release. Los workflows de este repositorio usan `uses: ./` para probar la Action del propio commit antes de que exista esa etiqueta. El mismo manifiesto está en la raíz (para `@v0`) y en [`action/action.yml`](action/action.yml) (para `uses: Simonethg/arcguard/action@v0`).
 
 The `v0` tag is created when the release is published. Workflows in this repository use `uses: ./` so they test the Action from the same commit before that tag exists. The same manifest is at the repository root (for `@v0`) and in [`action/action.yml`](action/action.yml) (for `uses: Simonethg/arcguard/action@v0`).
 
-Permisos mínimos del workflow que llama la Action: `contents: read`. `security-events: write` solo para subir el SARIF. `pull-requests: write` solo si `comment` queda en `true`. En un repositorio privado, `actions: read` permite descargar las actions que esta composite usa. El comentario usa el token del workflow (`github.token`). No hay secretos en el repositorio: un release o un RPC de testnet, si algún día hacen falta, entran solo por GitHub Secrets.
+Permisos mínimos del workflow que llama la Action: `contents: read`. `pull-requests: write` solo si `comment` queda en `true`. `security-events: write` solo si `upload-sarif` es `true`. En un repositorio privado, `actions: read` permite descargar las actions que esta composite usa. El comentario usa el token del workflow (`github.token`). No hay secretos en el repositorio: un release o un RPC de testnet, si algún día hacen falta, entran solo por GitHub Secrets.
 
-Minimum permissions for a workflow that calls the Action: `contents: read`. `security-events: write` is only for the SARIF upload. `pull-requests: write` is only needed when `comment` stays `true`. On a private repository, `actions: read` lets the runner download the actions this composite uses. The comment uses the workflow token (`github.token`). This repository has no secrets: a release or a testnet RPC, if one is ever required, comes only from GitHub Secrets.
+Minimum permissions for a workflow that calls the Action: `contents: read`. `pull-requests: write` is only needed when `comment` stays `true`. `security-events: write` is only needed when `upload-sarif` is `true`. On a private repository, `actions: read` lets the runner download the actions this composite uses. The comment uses the workflow token (`github.token`). This repository has no secrets: a release or a testnet RPC, if one is ever required, comes only from GitHub Secrets.
+
+`upload-sarif` es opcional. El default es `true`, y el paso usa `continue-on-error`: si el repositorio es privado y no tiene GitHub Advanced Security, Code Scanning rechaza el archivo y el check rojo o verde sigue el `fail-on`, no esa subida. En este repo los workflows dejan `upload-sarif: false`. Para activarla: `upload-sarif: true` más `security-events: write`.
+
+`upload-sarif` is optional. The default is `true`, and the step uses `continue-on-error`: if the repository is private and does not have GitHub Advanced Security, Code Scanning rejects the file and the red or green check still follows `fail-on`, not that upload. Workflows in this repo set `upload-sarif: false`. To turn the upload on: `upload-sarif: true` plus `security-events: write`.
 
 ```yaml
 name: arcguard

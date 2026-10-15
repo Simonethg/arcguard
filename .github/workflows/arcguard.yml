@@ -26,5 +26,7 @@ jobs:
         with:
           path: .
           fail-on: high
+          # Private repo without GitHub Advanced Security. The check does not need the upload.
+          upload-sarif: "false"
           # The vulnerable fixture is a deliberate demo. demo-vulnerable.yml scans it.
           ignore: action/fixtures/vulnerable
