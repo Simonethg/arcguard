@@ -1,11 +1,10 @@
 """Shared finding type for every chain module.
 
 Chain packages expose ``scan_path(path) -> list[Finding]``. Arc and future
-modules should construct this dataclass. The Base package already published
-on its own branch (``arcguard.base.scan_path``) returns a different frozen
-dataclass: ``rule_id``, ``slug``, ``severity``, ``path``, ``line``, ``message``.
-It has no ``chain``, no ``doc_url``, and the file field is named ``path``.
-``normalize_finding`` accepts that shape without importing ``arcguard.base``.
+modules should construct this dataclass; ``arcguard.base`` does. For
+compatibility, ``normalize_finding`` still accepts the earlier Base shape
+(``rule_id``, ``slug``, ``severity``, ``path``, ``line``, ``message``; no
+``chain`` or ``doc_url``) without importing ``arcguard.base``.
 
 Severity is stored in lowercase (``info``, ``low``, ``medium``, ``high``,
 ``critical``). Base emits title case (``High``); that is folded here.

@@ -59,3 +59,35 @@ def test_seize_with_hasrole_guard_is_clean() -> None:
 
 def test_base_rules_are_not_advertised_through_slither_yet() -> None:
     assert make_plugin() == ([], [])
+
+
+def test_findings_use_the_shared_format() -> None:
+    from arcguard.finding import Finding
+
+    hits = scan_path(_file("BASE-001", "vulnerable"))
+    assert hits and all(isinstance(f, Finding) for f in hits)
+    f = hits[0]
+    assert (f.chain, f.severity) == ("base", "high")
+    assert f.doc_url == "https://github.com/Simonethg/arcguard/blob/main/docs/rules/BASE-001.md"
+
+
+def test_cli_scan_chain_base_reports_corpus(capsys: pytest.CaptureFixture[str]) -> None:
+    import json
+
+    from arcguard.cli.main import main
+
+    status = main(["scan", str(CORPUS), "--chain", "base", "--format", "json"])
+    assert status == 1
+    report = json.loads(capsys.readouterr().out)
+    text = json.dumps(report)
+    for rule_id in RULE_IDS:
+        assert rule_id in text
+    assert "/fixed." not in text
+
+
+def test_cli_scan_chain_base_clean_on_fixed_files(capsys: pytest.CaptureFixture[str]) -> None:
+    from arcguard.cli.main import main
+
+    for rule_id in RULE_IDS:
+        assert main(["scan", str(_file(rule_id, "fixed")), "--chain", "base"]) == 0
+    capsys.readouterr()

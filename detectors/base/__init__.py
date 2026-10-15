@@ -1,9 +1,9 @@
 """Base-specific rules (BASE-*, BASE-OFF-*).
 
-These are text-pattern heuristics over Solidity and TypeScript/JavaScript sources.
-They are NOT wired into the Slither plugin or ``arcaudit scan`` yet: the plugin
-keeps returning empty lists so no tool advertises a check through Slither that it
-does not perform there. Use ``arcguard.base.scan_text`` / ``scan_path`` directly.
+Text-pattern heuristics over Solidity and TypeScript/JavaScript sources.
+``scan_path(path)`` returns the shared :class:`arcguard.finding.Finding`
+(``chain="base"``, lowercase severity, ``doc_url``) and runs through
+``arcaudit scan --chain base``. They are not part of the Slither plugin.
 
 A finding is a hint for review, not proof of a bug. An empty result does not
 mean code is safe. ArcGuard does not certify security and does not replace an audit.
