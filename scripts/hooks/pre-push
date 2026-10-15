@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Re-check the branch diff and, when installed, run gitleaks / trufflehog.
+# Enable with: git config core.hooksPath scripts/hooks
+
+set -u
+
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+
+status=0
+python3 "$root/scripts/hooks/scan_staged_diff.py" --cached || status=1
+
+if git rev-parse --verify origin/main >/dev/null 2>&1; then
+  python3 "$root/scripts/hooks/scan_staged_diff.py" --range origin/main || status=1
+elif git rev-parse --verify main >/dev/null 2>&1; then
+  python3 "$root/scripts/hooks/scan_staged_diff.py" --range main || status=1
+fi
+
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks detect --redact --no-banner || status=1
+fi
+
+if command -v trufflehog >/dev/null 2>&1; then
+  trufflehog git "file://${root}" --no-update --fail || status=1
+fi
+
+exit "$status"

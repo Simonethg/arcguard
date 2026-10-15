@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Block env files, keys, and secret-shaped diffs before a commit is created.
+# Enable with: git config core.hooksPath scripts/hooks
+
+set -u
+
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+
+status=0
+python3 "$root/scripts/hooks/scan_staged_diff.py" --cached || status=1
+
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact || status=1
+fi
+
+if command -v trufflehog >/dev/null 2>&1; then
+  trufflehog filesystem "$root" --no-update --fail || status=1
+fi
+
+exit "$status"
