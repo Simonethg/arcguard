@@ -58,10 +58,11 @@ if (ownServer) {
 }
 
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage();
-await page.addInitScript(() => {
+const context = await browser.newContext();
+await context.addInitScript(() => {
   localStorage.setItem("arcguard-locale", "es");
 });
+const page = await context.newPage();
 
 try {
   for (const viewport of viewports) {
@@ -113,6 +114,42 @@ try {
   const homeReport = await page.getByTestId("report-view").innerText();
   if (!homeReport.includes("ARC-001")) throw new Error("submitted report is missing ARC-001");
   if (!homeReport.includes("Simonethg/scaffold-arc")) throw new Error("target label missing");
+  if (!homeReport.includes("ejemplo")) throw new Error("submitted report is not labeled as an example");
+  await page.screenshot({ path: "/tmp/arcguard-ui/submit-desktop.png", fullPage: true });
+
+  const githubScan = await fetch(`${base}/api/scan`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      kind: "github",
+      githubUrl: "https://github.com/Simonethg/scaffold-arc",
+    }),
+  });
+  const githubPayload = await githubScan.json();
+  if (githubPayload.mode !== "example") throw new Error("github scan was not the example report");
+  if (githubPayload.report?.network?.chainId !== 5042002) throw new Error("github scan left testnet");
+  if (!githubPayload.cli?.attempted) throw new Error("sandbox did not attempt the CLI");
+
+  const fileScan = await fetch(`${base}/api/scan`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      kind: "file",
+      filename: "Pay.sol",
+      source: "pragma solidity ^0.8.24;\ncontract Pay { function f() external payable {} }\n",
+    }),
+  });
+  const filePayload = await fileScan.json();
+  if (filePayload.mode !== "example" || filePayload.report?.target?.label !== "Pay.sol") {
+    throw new Error("file scan did not return the labeled example");
+  }
+
+  const rejected = await fetch(`${base}/api/scan`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ kind: "github", githubUrl: "https://user:hunter2@github.com/a/b" }),
+  });
+  if (rejected.status !== 400) throw new Error("credential URL was accepted");
 
   await page.goto(`${base}/rules/ARC-001`, { waitUntil: "networkidle" });
   const article = await page.getByTestId("rule-article").innerText();
@@ -127,6 +164,13 @@ try {
   if (!box || box.width < 44 || box.height < 44) {
     throw new Error(`submit target is smaller than 44px: ${JSON.stringify(box)}`);
   }
+
+  await page.screenshot({ path: "/tmp/arcguard-ui/home-mobile.png", fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${base}/report`, { waitUntil: "networkidle" });
+  await page.screenshot({ path: "/tmp/arcguard-ui/report-desktop.png", fullPage: true });
+  await page.goto(`${base}/rules/ARC-001`, { waitUntil: "networkidle" });
+  await page.screenshot({ path: "/tmp/arcguard-ui/rule-desktop.png", fullPage: true });
 } finally {
   await browser.close();
   if (server) server.kill("SIGTERM");
