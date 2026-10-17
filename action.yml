@@ -64,8 +64,11 @@ outputs:
   engine:
     description: arcaudit when the CLI wrote SARIF, otherwise text-rules.
     value: ${{ steps.scan.outputs.engine }}
+  incomplete:
+    description: True when arcaudit reported an analysis error. The scan is then not clean and the job fails.
+    value: ${{ steps.scan.outputs.incomplete }}
   should-fail:
-    description: True when findings meet fail-on.
+    description: True when findings meet fail-on, or when the scan is incomplete.
     value: ${{ steps.scan.outputs.should-fail }}
 
 runs:
@@ -140,8 +143,14 @@ runs:
       env:
         FINDING_COUNT: ${{ steps.scan.outputs.finding-count }}
         ENGINE: ${{ steps.scan.outputs.engine }}
+        INCOMPLETE: ${{ steps.scan.outputs.incomplete }}
       run: |
         set -euo pipefail
+        if [ "${INCOMPLETE}" = "true" ]; then
+          echo "ArcGuard could not finish the scan: an analysis step failed. This is not a clean result."
+          echo "The SARIF file and the pull request comment show the error."
+          exit 2
+        fi
         echo "ArcGuard reported ${FINDING_COUNT} finding(s) using ${ENGINE}."
         echo "The SARIF file and the pull request comment list each rule."
         exit 1

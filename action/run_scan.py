@@ -174,6 +174,7 @@ def run(argv: list[str] | None = None) -> int:
         engine_name = "text-rules"
         cli_note = ""
         findings = []
+        errors: list[str] = []
         if args.engine == "auto":
             mode, cli_note = consult_arcaudit(target, sarif_path, markdown_path)
             if mode == "sarif":
@@ -182,10 +183,13 @@ def run(argv: list[str] | None = None) -> int:
                     payload = _engine.filter_sarif(payload, ignore, target, workspace)
                     _engine.write_json(sarif_path, payload)
                 findings = _engine.findings_from_sarif(payload)
+                errors = _engine.errors_from_sarif(payload)
                 engine_name = "arcaudit"
                 if not markdown_path.is_file():
                     markdown_path.write_text(
-                        _engine.build_markdown(findings, scan_raw, engine_name, cli_note),
+                        _engine.build_markdown(
+                            findings, scan_raw, engine_name, cli_note, errors=errors
+                        ),
                         encoding="utf-8",
                     )
             else:
@@ -205,7 +209,11 @@ def run(argv: list[str] | None = None) -> int:
         print(f"arcguard: {exc}", file=sys.stderr)
         return 2
 
-    failed = _engine.should_fail(findings, fail_on)
+    incomplete = bool(errors)
+    # Fail closed: a scan that did not finish must never pass as clean.
+    failed = _engine.should_fail(findings, fail_on) or incomplete
+    for error in errors:
+        print(f"arcguard: error: {error}", file=sys.stderr)
     for finding in findings:
         print(
             f"{finding.rule.rule_id} {finding.rule.severity} "
@@ -213,15 +221,19 @@ def run(argv: list[str] | None = None) -> int:
         )
     print(
         f"arcguard-result engine={engine_name} findings={len(findings)} "
+        f"incomplete={'true' if incomplete else 'false'} "
         f"should-fail={'true' if failed else 'false'}"
     )
     _write_output("sarif-file", sarif_path.relative_to(workspace).as_posix())
     _write_output("markdown-file", str(markdown_path))
     _write_output("finding-count", str(len(findings)))
     _write_output("engine", engine_name)
+    _write_output("incomplete", "true" if incomplete else "false")
     _write_output("should-fail", "true" if failed else "false")
     if report_only:
         return 0
+    if incomplete:
+        return 2
     return 1 if failed else 0
 
 

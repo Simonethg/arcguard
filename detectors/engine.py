@@ -51,8 +51,14 @@ from arcguard.rules import (
 
 RAW_NATIVE = "RAW_NATIVE"
 RAW_ERC20 = "RAW_ERC20"
+# A name that only says "usdc". On Arc that is ambiguous: native USDC
+# (18 decimals) and the ERC-20 interface (6 decimals) are the same asset, so a
+# reserve called realUsdc can hold native wei. It still counts as ERC-20 for the
+# mixing rules, but not as proof of 6 decimals when the contract handles native
+# value (see _erc20_scale_evidence).
+NAME_USDC = "NAME_USDC"
 CONVERTED = "CONVERTED"
-AMOUNT_UNITS = {RAW_NATIVE, RAW_ERC20}
+AMOUNT_UNITS = {RAW_NATIVE, RAW_ERC20, NAME_USDC}
 SCALE_FACTORS = {
     FACTOR_1E6: "1e6",
     SCALE_1E12: "1e12",
@@ -119,6 +125,7 @@ def analyze(compilation_unit: object) -> dict[str, list[Finding]]:
     contracts = list(compilation_unit.contracts)
     const_env, const_ids = _constant_maps(contracts)
     facts = _Facts(const_env, const_ids)
+    facts.native_contracts = _contracts_handling_native(contracts)
     grouped: dict[str, list[Finding]] = {rule_id: [] for rule_id in RULES}
     destructing = _functions_that_selfdestruct(contracts)
 
@@ -168,10 +175,32 @@ class _Facts:
         self.param_of: dict[int, tuple[int, int]] = {}
         self.param_sources: dict[int, set[tuple[int, int]]] = defaultdict(set)
         self.mix_pairs: dict[int, set[tuple[int, int]]] = defaultdict(set)
+        # ids of contracts with a payable function, msg.value or address.balance.
+        self.native_contracts: set[int] = set()
 
 
 def _functions(contract: Contract) -> list[Function]:
     return list(contract.functions_and_modifiers_declared)
+
+
+def _contracts_handling_native(contracts: list[Contract]) -> set[int]:
+    found: set[int] = set()
+    for contract in contracts:
+        for function in _functions(contract):
+            if getattr(function, "payable", False) or _reads_native(function):
+                found.add(id(contract))
+                break
+    return found
+
+
+def _reads_native(function: Function) -> bool:
+    for node in function.nodes:
+        for ir in _irs(node):
+            if isinstance(ir, SolidityCall) and ir.function.name == "balance(address)":
+                return True
+            if any(getattr(var, "name", None) == "msg.value" for var in _reads(ir)):
+                return True
+    return False
 
 
 def _constant_maps(
@@ -551,7 +580,11 @@ def _check_decimal_scale(ir: object, node: object, facts: _Facts) -> None:
             else "applies a 6-decimal factor to native USDC. Native value has 18 decimals."
         )
         _add(facts, RULES["ARC-002"], node, detail)
-    elif factor == FACTOR_1E18 and _is_raw(other_units, RAW_ERC20):
+    elif (
+        factor == FACTOR_1E18
+        and _is_raw(other_units, RAW_ERC20)
+        and _erc20_scale_evidence(other_units, node, facts)
+    ):
         detail = (
             "compares an ERC-20 USDC amount with 1e18. That interface has 6 decimals."
             if compared
@@ -786,7 +819,12 @@ def _is_this_address(var: object, facts: _Facts) -> bool:
     return id(var) in facts.this_ids or getattr(var, "name", None) == "this"
 
 
-def _callee_destructs(function: Function, destructing: set[Function]) -> bool:
+def _callee_destructs(function: object, destructing: set[Function]) -> bool:
+    # A call to another contract's public state variable resolves to the
+    # StateVariable behind the getter. A getter only reads storage, so it
+    # cannot self-destruct.
+    if not isinstance(function, Function):
+        return False
     if function in destructing:
         return True
     if function.is_implemented and function.nodes:
@@ -885,12 +923,35 @@ def _classify_name(name: str, var: object, facts: _Facts) -> str | None:
     ):
         return RAW_NATIVE
     if "usdc" in normalized and "wusdc" not in normalized:
-        return RAW_ERC20
+        return NAME_USDC
     return None
 
 
 def _is_raw(units: set[str], kind: str) -> bool:
-    return kind in units and CONVERTED not in units
+    if CONVERTED in units:
+        return False
+    if kind == RAW_ERC20:
+        return RAW_ERC20 in units or NAME_USDC in units
+    return kind in units
+
+
+def _erc20_scale_evidence(units: set[str], node: object, facts: _Facts) -> bool:
+    """True when an ERC-20 reading is strong enough to call 1e18 a 6-decimal bug.
+
+    Real ERC-20 evidence (balanceOf, an erc20/balanceOf name) always counts. A
+    bare "usdc" name counts only when the value carries no native evidence and
+    the contract never touches native value (no payable function, msg.value or
+    address.balance). Otherwise ``reserveUsdc * 1e18`` is usually native wei
+    priced per whole 18-decimal token, which is correct on Arc.
+    """
+
+    if RAW_ERC20 in units:
+        return True
+    if NAME_USDC not in units or RAW_NATIVE in units:
+        return False
+    function = getattr(node, "function", None)
+    contract = getattr(function, "contract", None)
+    return id(contract) not in facts.native_contracts
 
 
 def _set_units(facts: _Facts, var: object, units: set[str]) -> None:

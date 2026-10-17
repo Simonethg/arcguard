@@ -21,6 +21,7 @@ explicit fee and is reported.
 
 from __future__ import annotations
 
+import os
 import re
 from decimal import Decimal
 from pathlib import Path
@@ -54,6 +55,25 @@ _SKIP_DIRS = {
     "typechain-types",
     "venv",
 }
+
+# Test and mock code is skipped by default: fee values there are fixtures for
+# unit tests or fakes for other chains, not transactions sent to Arc. Pass
+# ``include_tests=True`` (``arcaudit scan --include-tests``) to scan them.
+_TEST_DIRS = {"test", "tests", "__tests__", "spec", "mock", "mocks", "__mocks__"}
+_TEST_FILE = re.compile(
+    r"(\.t\.sol$)|(\.(test|spec)\.[cm]?[jt]sx?$)|((^|[._-])mocks?([._-]|$))|(^[Mm]ock[A-Z0-9_])",
+)
+
+
+def is_test_path(relative: str) -> bool:
+    """True for a test or mock path, relative to the scan root."""
+
+    parts = Path(relative).parts
+    if any(part.lower() in _TEST_DIRS for part in parts[:-1]):
+        return True
+    name = parts[-1] if parts else relative
+    return bool(_TEST_FILE.search(name))
+
 
 # ``_`` is a word character, so ``priority_gas_price`` does not match ``gas_price``.
 _FEE_KEY = re.compile(
@@ -504,12 +524,18 @@ def _interesting(path: Path) -> bool:
     return path.suffix.lower() in _JS_SUFFIXES or path.suffix.lower() == ".sol"
 
 
-def scan_path(root: str | Path) -> list[Finding]:
+def scan_path(root: str | Path, *, include_tests: bool | None = None) -> list[Finding]:
     """Scan a file or directory for ARC-OFF-1.
 
     The signature is ``scan_path(path)`` so the chain registry can call it
-    the same way it calls ``arcguard.base.scan_path``.
+    the same way it calls ``arcguard.base.scan_path``. In a directory scan,
+    test and mock paths (``test/``, ``mocks/``, ``*.t.sol``, ``*.test.ts``,
+    ``MockFoo.ts``) are skipped unless ``include_tests`` is true or
+    ``ARCGUARD_INCLUDE_TESTS=1``. A file passed directly is always scanned.
     """
+
+    if include_tests is None:
+        include_tests = os.environ.get("ARCGUARD_INCLUDE_TESTS") == "1"
 
     root_path = Path(root)
     if root_path.is_file():
@@ -525,6 +551,13 @@ def scan_path(root: str | Path) -> list[Finding]:
             continue
         if not _interesting(path):
             continue
+        if not include_tests and not root_path.is_file():
+            try:
+                relative = path.relative_to(root_path).as_posix()
+            except ValueError:
+                relative = path.name
+            if is_test_path(relative):
+                continue
         try:
             if path.stat().st_size > 1_000_000:
                 continue

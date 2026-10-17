@@ -26,6 +26,10 @@ La GitHub Action corre `arcaudit scan <ruta> --format sarif --output <archivo>`.
 
 `--format text` (default), `json`, `sarif` (SARIF 2.1.0) o `markdown`. El proceso sale con código 1 si hay un hallazgo de severidad mayor o igual que `--threshold` (`info`, `low`, `medium`, `high`, `critical`; default `low`).
 
+Códigos de salida: `0` sin hallazgos, `1` hay un hallazgo en el umbral, `2` el escaneo no terminó (target inválido, módulo faltante o un detector que falló). Si un detector falla, los demás siguen corriendo, el reporte dice "Scan incomplete", el SARIF trae `executionSuccessful: false` y la Action marca el check en rojo. Un escaneo que falló nunca se informa como limpio.
+
+ARC-OFF-1 saltea por defecto código de tests y mocks (`test/`, `tests/`, `mocks/`, `__mocks__/`, `*.t.sol`, `*.test.ts`, `*.spec.ts`, `MockX.ts`). `--include-tests` (o `ARCGUARD_INCLUDE_TESTS=1`) los incluye. Un archivo pasado directo siempre se escanea.
+
 Con el extra `detectors`, el plugin expone ARC-001..ARC-008 y un scan de Arc los ejecuta. Sin ese extra las listas quedan vacías y no se simula un análisis de Solidity.
 
 `pip install -e .` installs the `arcguard` package, the `arcaudit` command, and the Slither plugin entry point (`slither_analyzer.plugin` → `arcguard.plugin:make_plugin`).
@@ -40,6 +44,10 @@ Con el extra `detectors`, el plugin expone ARC-001..ARC-008 y un scan de Arc los
 
 `--format text` (default), `json`, `sarif` (SARIF 2.1.0), or `markdown`. The process exits 1 when a finding's severity is at least `--threshold` (`info`, `low`, `medium`, `high`, `critical`; default `low`).
 
+Exit codes: `0` no findings, `1` a finding meets the threshold, `2` the scan did not finish (bad target, missing module, or a detector that crashed). When a detector crashes the others still run, the report says "Scan incomplete", the SARIF has `executionSuccessful: false`, and the Action turns the check red. A crashed scan is never reported as clean.
+
+ARC-OFF-1 skips test and mock code by default (`test/`, `tests/`, `mocks/`, `__mocks__/`, `*.t.sol`, `*.test.ts`, `*.spec.ts`, `MockX.ts`). `--include-tests` (or `ARCGUARD_INCLUDE_TESTS=1`) scans them too. A file passed directly is always scanned.
+
 With the `detectors` extra, the plugin exposes ARC-001..ARC-008 and an Arc scan runs them. Without that extra the lists stay empty and no Solidity analysis is simulated.
 
 The GitHub Action runs `arcaudit scan <path> --format sarif --output <file>`. When the CLI writes that SARIF, the pull request comment and `fail-on` come from it. `ignore` is applied afterwards, because the CLI has no such flag. Text rules in `action/engine.py` run only for a CLI that does not emit SARIF yet. Uploading the file to Code Scanning is optional.
@@ -53,7 +61,7 @@ Cada regla sale de la documentación pública de Arc. El detalle está en [`docs
 | ID | Slug | Severidad / Severity | Qué busca / What it looks for |
 | --- | --- | --- | --- |
 | ARC-001 | `msg-value-vs-balanceof-mix` | Alta / High | Comparar, sumar o restar `msg.value` o `address.balance` (18 decimales) contra montos `balanceOf` / `transfer` de USDC ERC-20 (6 decimales) sin escalar, incluido el call site que pasa `msg.value` real a un helper. Un parámetro llamado `msgValue` mezclado solo con `balanceOf` es Media. Mixing native value (18 decimals) with ERC-20 USDC amounts (6 decimals) without scaling, including a call site that passes real `msg.value` into a helper. A `msgValue` parameter mixed only with `balanceOf` is Medium. |
-| ARC-002 | `usdc-decimals-hardcoded` | Alta / High | Suponer 6 decimales en el valor nativo, o 18 en el ERC-20. Assuming 6 decimals for native value, or 18 for the ERC-20. |
+| ARC-002 | `usdc-decimals-hardcoded` | Alta / High | Suponer 6 decimales en el valor nativo, o 18 en el ERC-20. Un nombre que solo dice `usdc` no prueba 6 decimales si el contrato maneja valor nativo. Assuming 6 decimals for native value, or 18 for the ERC-20. A name that only says `usdc` does not prove 6 decimals when the contract handles native value. |
 | ARC-003 | `native-erc20-dual-asset-pool` | Alta / High | Pools, LTV u oráculos que tratan el USDC nativo y el USDC ERC-20 como dos activos. Pools, LTV, or oracles that treat native USDC and ERC-20 USDC as two assets. |
 | ARC-004 | `weth-pattern` | Media / Medium | `WETH.deposit` / `withdraw`, constantes WETH, wrap y unwrap. WETH deposit, withdraw, constants, wrap, and unwrap. |
 | ARC-005 | `value-to-zero-address` | Alta / High | Envío de valor a `address(0)`. En Arc ese envío revierte. Sending value to `address(0)`. On Arc that transfer reverts. |

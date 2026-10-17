@@ -75,3 +75,19 @@ arcguard-release-*.md
 .vscode/
 *.swp
 .DS_Store
+
+# Personal media and heavy files never go in this public repo (voice, video,
+# avatars, archives). They belong in a private Drive.
+*.mp3
+*.wav
+*.m4a
+*.ogg
+*.flac
+*.mp4
+*.mov
+*.webm
+*.mkv
+*.avi
+*.zip
+voice/
+avatar/

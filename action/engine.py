@@ -672,9 +672,15 @@ def build_markdown(
     scanned_path: str,
     engine: str,
     cli_note: str,
+    errors: list[str] | None = None,
 ) -> str:
-    """Bilingual pull-request summary. Severity is written with words."""
+    """Bilingual pull-request summary. Severity is written with words.
 
+    ``errors`` come from a SARIF run with ``executionSuccessful: false``. Then the
+    summary says the scan is incomplete and never prints the no-findings line.
+    """
+
+    errors = list(errors or [])
     counts = _counts(findings)
     lines = [
         summary_marker(scanned_path),
@@ -717,7 +723,23 @@ def build_markdown(
                 "",
             ]
         )
-    if not findings:
+    if errors:
+        lines.extend(
+            [
+                "### Escaneo incompleto / Scan incomplete",
+                "",
+                "Un paso del análisis falló. Esto **no** es un resultado limpio: "
+                "corregí el error y volvé a escanear.",
+                "",
+                "An analysis step failed. This is **not** a clean result: fix the error "
+                "and scan again.",
+                "",
+            ]
+        )
+        for error in errors[:10]:
+            lines.append(f"- `{error[:300]}`")
+        lines.append("")
+    if not findings and not errors:
         lines.extend(
             [
                 "Sin hallazgos en el umbral revisado por estas reglas.",
@@ -726,7 +748,7 @@ def build_markdown(
                 "",
             ]
         )
-    else:
+    elif findings:
         shown = findings[:30]
         for finding in shown:
             fix_es = finding.rule.fix_es or "Ver la página de la regla."
@@ -828,6 +850,34 @@ def filter_sarif(payload: dict, ignore: list[str], target: Path, workspace: Path
             kept.append(result)
         run["results"] = kept
     return payload
+
+
+def errors_from_sarif(payload: dict) -> list[str]:
+    """Analysis errors from runs whose invocation did not succeed.
+
+    ``arcaudit`` sets ``executionSuccessful: false`` and adds error-level
+    notifications when a detector crashes. An unsuccessful run with no message
+    still counts as one error, so the Action fails closed.
+    """
+
+    errors: list[str] = []
+    for run in payload.get("runs", []):
+        if not isinstance(run, dict):
+            continue
+        for invocation in run.get("invocations") or []:
+            if not isinstance(invocation, dict) or invocation.get("executionSuccessful", True):
+                continue
+            found = False
+            for item in invocation.get("toolExecutionNotifications") or []:
+                if not isinstance(item, dict) or item.get("level") != "error":
+                    continue
+                message = item.get("message", {})
+                text = str(message.get("text", "")) if isinstance(message, dict) else ""
+                errors.append(text or "arcaudit reported an analysis error.")
+                found = True
+            if not found:
+                errors.append("arcaudit reported that the scan did not finish.")
+    return errors
 
 
 def findings_from_sarif(payload: dict) -> list[Finding]:
