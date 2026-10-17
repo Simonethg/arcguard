@@ -21,10 +21,12 @@ def execute(
     root, cleanup = resolve_target(target)
     try:
         findings, notes, ran = scan_chains(root, chain)
+        errors: list[str] = []
         if "arc" in ran:
-            extra, slither_notes = slither_findings(root)
+            extra, slither_notes, slither_errors = slither_findings(root)
             findings.extend(extra)
             notes.extend(slither_notes)
+            errors.extend(slither_errors)
         findings.sort(key=lambda item: (item.file, item.line, item.rule_id, item.chain))
         return ScanReport(
             target=target,
@@ -33,17 +35,37 @@ def execute(
             threshold=threshold,
             findings=findings,
             notes=notes,
+            errors=errors,
         )
     finally:
         cleanup()
 
 
-def exit_code(findings: list[Finding], threshold: str) -> int:
-    """1 when any finding is at least ``threshold``; otherwise 0."""
+EXIT_CLEAN = 0
+EXIT_FINDINGS = 1
+EXIT_ERROR = 2
 
+
+def exit_code(findings: list[Finding], threshold: str, errors: list[str] | None = None) -> int:
+    """2 when the scan hit an analysis error, 1 for a finding at ``threshold``, else 0.
+
+    An error wins over findings: a scan that did not finish is never reported
+    as clean, and CI must not read it as a normal pass or a normal failure.
+    """
+
+    if errors:
+        return EXIT_ERROR
     if any(meets_threshold(finding.severity, threshold) for finding in findings):
-        return 1
-    return 0
+        return EXIT_FINDINGS
+    return EXIT_CLEAN
 
 
-__all__ = ["ChainModuleError", "TargetError", "execute", "exit_code"]
+__all__ = [
+    "EXIT_CLEAN",
+    "EXIT_ERROR",
+    "EXIT_FINDINGS",
+    "ChainModuleError",
+    "TargetError",
+    "execute",
+    "exit_code",
+]

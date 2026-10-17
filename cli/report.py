@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from urllib.parse import quote
 
 from arcguard import __version__
@@ -51,6 +51,17 @@ class ScanReport:
     threshold: str
     findings: list[Finding]
     notes: list[str]
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def complete(self) -> bool:
+        return not self.errors
+
+
+_INCOMPLETE = (
+    "Scan incomplete: an analysis step failed, so this is NOT a clean result. "
+    "Fix the error and scan again."
+)
 
 
 def render_text(report: ScanReport) -> str:
@@ -61,7 +72,12 @@ def render_text(report: ScanReport) -> str:
         f"threshold: {report.threshold}",
         "",
     ]
-    if not report.findings:
+    if report.errors:
+        lines.append(_INCOMPLETE)
+        for error in report.errors:
+            lines.append(f"error: {error}")
+        lines.append("")
+    if not report.findings and report.complete:
         lines.append("No findings.")
     for finding in report.findings:
         lines.append(
@@ -88,6 +104,8 @@ def render_json(report: ScanReport) -> str:
         "chains_requested": report.chains_requested,
         "chains_ran": list(report.chains_ran),
         "threshold": report.threshold,
+        "complete": report.complete,
+        "errors": list(report.errors),
         "notes": list(report.notes),
         "findings": [finding.to_dict() for finding in report.findings],
     }
@@ -105,6 +123,12 @@ def render_markdown(report: ScanReport) -> str:
         f"- Threshold: `{report.threshold}`",
         "",
     ]
+    if report.errors:
+        lines.append(f"**{_INCOMPLETE}**")
+        lines.append("")
+        for error in report.errors:
+            lines.append(f"- Error: {error}")
+        lines.append("")
     if report.findings:
         lines.extend(
             [
@@ -130,7 +154,7 @@ def render_markdown(report: ScanReport) -> str:
             seen.add(finding.doc_url)
             lines.append(f"- {finding.rule_id}: {finding.doc_url}")
         lines.append("")
-    else:
+    elif report.complete:
         lines.append("No findings.")
         lines.append("")
     if report.notes:
@@ -228,8 +252,8 @@ def render_sarif(report: ScanReport) -> str:
             }
         )
     notifications = [
-        {"message": {"text": note}, "level": "note"} for note in dict.fromkeys(report.notes)
-    ]
+        {"message": {"text": error}, "level": "error"} for error in dict.fromkeys(report.errors)
+    ] + [{"message": {"text": note}, "level": "note"} for note in dict.fromkeys(report.notes)]
     log = {
         "$schema": _SARIF_SCHEMA,
         "version": "2.1.0",
@@ -246,7 +270,7 @@ def render_sarif(report: ScanReport) -> str:
                 "results": results,
                 "invocations": [
                     {
-                        "executionSuccessful": True,
+                        "executionSuccessful": report.complete,
                         "commandLine": (
                             f"arcaudit scan {report.target} --chain {report.chains_requested} "
                             f"--threshold {report.threshold}"

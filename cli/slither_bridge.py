@@ -1,10 +1,13 @@
 """Run ArcGuard Slither detectors when the plugin actually exposes some.
 
 The scaffold plugin returns empty lists. This bridge does nothing in that
-case, so a scan cannot pretend Solidity was analyzed. When a later change
-adds detector classes, they are executed only for a scan that includes Arc,
-and only if Slither imports. A missing compiler or a missing Slither install
-becomes a note; off-chain rules still run.
+case, so a scan cannot pretend Solidity was analyzed. Detector classes run
+only for a scan that includes Arc, and only if Slither imports. A missing
+compiler or a missing Slither install becomes a note; off-chain rules still run.
+
+A detector that raises is an error, not a note. The remaining detectors still
+run, and the error is returned separately so the CLI fails closed (exit 2)
+instead of reporting a crashed scan as clean.
 """
 
 from __future__ import annotations
@@ -17,21 +20,27 @@ from arcguard.plugin import make_plugin
 _DOC = "https://docs.arc.io/arc/references/evm-differences"
 
 
-def slither_findings(root: Path) -> tuple[list[Finding], list[str]]:
+def slither_findings(root: Path) -> tuple[list[Finding], list[str], list[str]]:
+    """Return ``(findings, notes, errors)``. Any error means the scan is incomplete."""
+
     detectors, _printers = make_plugin()
     if not detectors:
-        return [], []
+        return [], [], []
     try:
         from slither.slither import Slither
     except ImportError:
-        return [], [
-            "Slither is not installed; Arc detector classes were not executed. "
-            "Off-chain rules still ran."
-        ]
+        return (
+            [],
+            [
+                "Slither is not installed; Arc detector classes were not executed. "
+                "Off-chain rules still ran."
+            ],
+            [],
+        )
     try:
         analyzer = Slither(str(root))
     except Exception as exc:
-        return [], [f"Slither did not analyze this target ({type(exc).__name__})."]
+        return [], [f"Slither did not analyze this target ({type(exc).__name__})."], []
 
     wanted = {detector.ARGUMENT for detector in detectors if hasattr(detector, "ARGUMENT")}
     registered = {type(detector) for detector in analyzer.detectors}
@@ -40,6 +49,7 @@ def slither_findings(root: Path) -> tuple[list[Finding], list[str]]:
             analyzer.register_detector(detector_cls)
 
     findings: list[Finding] = []
+    errors: list[str] = []
     for detector in analyzer.detectors:
         argument = getattr(detector, "ARGUMENT", None)
         if argument not in wanted and type(detector) not in detectors:
@@ -47,10 +57,16 @@ def slither_findings(root: Path) -> tuple[list[Finding], list[str]]:
         try:
             results = detector.detect() or []
         except Exception as exc:
-            return findings, [f"Slither detector {argument} failed ({type(exc).__name__})."]
+            detail = str(exc).strip().splitlines()[0][:200] if str(exc).strip() else ""
+            suffix = f": {detail}" if detail else ""
+            errors.append(
+                f"Slither detector {argument} failed ({type(exc).__name__}{suffix}). "
+                "Its rule did not run, so this scan is incomplete."
+            )
+            continue
         for result in results:
             findings.append(_convert(detector, result, root))
-    return findings, []
+    return findings, [], errors
 
 
 def _location(result: object, root: Path) -> tuple[str, int]:

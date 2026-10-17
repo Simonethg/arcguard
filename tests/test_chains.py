@@ -185,6 +185,7 @@ def test_slither_bridge_skips_when_the_plugin_is_empty(
     from arcguard.cli import slither_bridge
 
     monkeypatch.setattr(slither_bridge, "make_plugin", lambda: ([], []))
-    findings, notes = slither_bridge.slither_findings(tmp_path)
+    findings, notes, errors = slither_bridge.slither_findings(tmp_path)
     assert findings == []
     assert notes == []
+    assert errors == []

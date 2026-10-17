@@ -2,7 +2,9 @@
 
 ``arcaudit scan <path|github-url> --chain arc|base|celo|all`` runs the chain
 modules and can emit text, JSON, SARIF 2.1.0, or Markdown. The process exits
-1 when a finding's severity is at least ``--threshold``.
+1 when a finding's severity is at least ``--threshold``, and 2 when the scan
+could not finish (bad target, a missing module, or a detector that crashed).
+A crashed detector is never reported as a clean scan.
 
 Live checks stay on public testnets. ArcGuard does not certify security and
 does not replace an audit.
@@ -11,6 +13,7 @@ does not replace an audit.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 
 from arcguard import __version__
@@ -64,7 +67,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--threshold",
         choices=_THRESHOLDS,
         default="low",
-        help="Exit 1 when a finding is at least this severity (default: low).",
+        help=(
+            "Exit 1 when a finding is at least this severity (default: low). "
+            "Exit 2 means the scan did not finish; it is never a clean result."
+        ),
+    )
+    scan.add_argument(
+        "--include-tests",
+        action="store_true",
+        help=(
+            "Also run ARC-OFF-1 on test and mock paths (test/, mocks/, *.t.sol, "
+            "*.test.ts). They are skipped by default."
+        ),
     )
     scan.add_argument(
         "--output",
@@ -84,11 +98,20 @@ def main(argv: list[str] | None = None) -> int:
     if args.command != "scan":
         parser.print_help()
         return 0
+    previous = os.environ.get("ARCGUARD_INCLUDE_TESTS")
+    if args.include_tests:
+        os.environ["ARCGUARD_INCLUDE_TESTS"] = "1"
     try:
         report = execute(args.target, chain=args.chain, threshold=args.threshold)
     except (TargetError, ChainModuleError) as exc:
         print(f"arcaudit: {exc}", file=sys.stderr)
         return 2
+    finally:
+        if args.include_tests:
+            if previous is None:
+                os.environ.pop("ARCGUARD_INCLUDE_TESTS", None)
+            else:
+                os.environ["ARCGUARD_INCLUDE_TESTS"] = previous
     rendered = render(report, args.format)
     sys.stdout.write(rendered)
     if args.output:
@@ -98,7 +121,9 @@ def main(argv: list[str] | None = None) -> int:
         except OSError as exc:
             print(f"arcaudit: could not write {args.output}: {exc}", file=sys.stderr)
             return 2
-    return exit_code(report.findings, args.threshold)
+    for error in report.errors:
+        print(f"arcaudit: error: {error}", file=sys.stderr)
+    return exit_code(report.findings, args.threshold, report.errors)
 
 
 if __name__ == "__main__":
